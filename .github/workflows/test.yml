@@ -1,0 +1,141 @@
+# Terraform Provider testing workflow.
+#
+# DISABLED (workflow_dispatch only) while this repo is private under
+# github.com/twilio-internal: this org's self-hosted GHA runners
+# (twilio-internal-ubuntu-latest-slim) have NO egress to package registries,
+# so every step below that fetches a dependency (go install, go mod
+# download, curl to releases.hashicorp.com) hangs until timeout rather than
+# failing cleanly. Build/test/lint/docs-gen now run on Buildkite instead —
+# see .buildkite/pipeline.yml.
+#
+# REVERT TO THIS WORKFLOW when the repo moves to a public org (github.com/
+# twilio or github.com/twilio-labs, via Twilio's IP-team + #help-oss
+# process): change `on:` back to pull_request/push below, and change
+# `runs-on: twilio-internal-ubuntu-latest-slim` (in each job) to `runs-on:
+# ubuntu-latest-large` (or `windows-latest-large` for Windows jobs) — the
+# GitHub-hosted public-repo runner labels. Public-repo SDK build/test/
+# publish is policy-mandated onto GitHub-hosted runners (not self-hosted),
+# because a fork PR can otherwise run attacker-controlled code against
+# self-hosted infrastructure. Once reverted, this file's `go install`/`curl`
+# steps should work as-is — those runners have real internet access — so
+# .buildkite/pipeline.yml can be retired at that point.
+#
+# Every `uses:` here is either created by GitHub (actions/*) or absent —
+# golangci-lint, Terraform, and GoReleaser are all installed via plain shell
+# commands (go install / a direct release download) instead of third-party
+# marketplace actions, because this org's Actions allow-list only permits
+# actions from GitHub, from an enterprise-owned repo, or from a small
+# explicit exception list — none of which cover golangci-lint-action or
+# hashicorp/setup-terraform.
+name: Tests
+
+on:
+  workflow_dispatch: {}
+
+# Testing only needs permissions to read the repository contents.
+permissions:
+  contents: read
+
+env:
+  GOLANGCI_LINT_VERSION: 'v2.13.1'
+
+jobs:
+  # Ensure project builds, vets, and lints cleanly before running the test matrix.
+  build:
+    name: Build
+    runs-on: twilio-internal-ubuntu-latest-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - run: go mod download
+      - run: go build -v .
+      - run: go vet ./...
+      - name: Install golangci-lint
+        run: go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}"
+      - name: Run linters
+        run: golangci-lint run
+
+  # Unit tests never touch the network and need no credentials.
+  unit-test:
+    name: Unit Tests
+    runs-on: twilio-internal-ubuntu-latest-slim
+    timeout-minutes: 10
+    needs: build
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - run: go mod download
+      - run: go test -v -cover ./...
+
+  # Regenerate docs and fail if that produces an uncommitted diff, so
+  # generated docs can never silently drift from the schema.
+  generate:
+    name: Generate Docs
+    runs-on: twilio-internal-ubuntu-latest-slim
+    timeout-minutes: 10
+    env:
+      TERRAFORM_VERSION: '1.15.9'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Install Terraform
+        run: |
+          curl -fsSL -o terraform.zip \
+            "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+          sudo unzip -o terraform.zip -d /usr/local/bin
+          rm terraform.zip
+          terraform version
+      - run: go generate ./...
+      - name: git diff
+        run: |
+          git diff --compact-summary --exit-code || \
+            (echo; echo "Unexpected difference in directories after code generation. Run 'go generate ./...' and commit the result."; exit 1)
+
+  # Acceptance tests make real calls against a live SendGrid account and
+  # need repository secrets, which forked-PR and Dependabot-triggered runs
+  # don't receive (SENDGRID_API_KEY resolves empty and every call fails
+  # with "authorization required"). Run only on pushes to main, where
+  # secrets are available, so this workflow still finishes successfully
+  # for ordinary PRs without silently skipping real coverage forever.
+  acceptance-test:
+    name: Acceptance Tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: twilio-internal-ubuntu-latest-slim
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        terraform:
+          - '1.9.8'
+          - '1.15.9'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Install Terraform ${{ matrix.terraform }}
+        run: |
+          curl -fsSL -o terraform.zip \
+            "https://releases.hashicorp.com/terraform/${{ matrix.terraform }}/terraform_${{ matrix.terraform }}_linux_amd64.zip"
+          sudo unzip -o terraform.zip -d /usr/local/bin
+          rm terraform.zip
+          terraform version
+      - run: go mod download
+      - env:
+          TF_ACC: '1'
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        run: go test -v -cover ./internal/provider/...
+        timeout-minutes: 20

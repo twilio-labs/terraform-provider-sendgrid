@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetCustomFieldExactMatch(t *testing.T) {
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{
@@ -26,7 +26,7 @@ func TestGetCustomFieldExactMatch(t *testing.T) {
 }
 
 func TestGetCustomFieldNotFound(t *testing.T) {
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"custom_fields": [], "reserved_fields": []}`))

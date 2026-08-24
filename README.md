@@ -1,9 +1,12 @@
 # Terraform Provider for SendGrid
 
+[![Tests](https://github.com/twilio-internal/terraform-provider-sendgrid/actions/workflows/test.yml/badge.svg)](https://github.com/twilio-internal/terraform-provider-sendgrid/actions/workflows/test.yml)
+
 A Terraform provider for managing [SendGrid](https://sendgrid.com) (Twilio) resources, built on the
 [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework).
 
-**Status:** early development — not yet published to the Terraform Registry.
+**Status:** early development — not yet published to the Terraform Registry, and not yet validated against a
+live SendGrid account (see [CONTRIBUTING.md](CONTRIBUTING.md) for how to run acceptance tests).
 
 ## Resources
 
@@ -59,6 +62,15 @@ Requirements:
 ```sh
 go install
 ```
+
+Or run everything CI runs in one shot (build, vet, lint, unit tests, docs generation):
+
+```sh
+make check
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow, including the two bug patterns that have bitten
+this provider before and are worth checking for in any new resource.
 
 ### Configuration for local development
 

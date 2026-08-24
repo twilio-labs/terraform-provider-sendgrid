@@ -97,7 +97,11 @@ func (p *SendgridProvider) Configure(ctx context.Context, req provider.Configure
 		onBehalfOf = os.Getenv("SENDGRID_ON_BEHALF_OF")
 	}
 
-	client := sg.NewClient(apiKey, sg.WithHost(host), sg.WithOnBehalfOf(onBehalfOf))
+	client := sg.NewClient(apiKey,
+		sg.WithHost(host),
+		sg.WithOnBehalfOf(onBehalfOf),
+		sg.WithUserAgent("terraform-provider-sendgrid/"+p.version),
+	)
 
 	resp.ResourceData = client
 	resp.DataSourceData = client
@@ -120,6 +124,16 @@ func (p *SendgridProvider) Resources(_ context.Context) []func() resource.Resour
 		NewSubscriptionTrackingSettingsResource,
 		NewGoogleAnalyticsSettingsResource,
 		NewIPPoolResource,
+		NewTeammateResource,
+		NewAddressWhitelistMailSettingsResource,
+		NewBouncePurgeMailSettingsResource,
+		NewFooterMailSettingsResource,
+		NewForwardBounceMailSettingsResource,
+		NewForwardSpamMailSettingsResource,
+		NewTemplateMailSettingsResource,
+		NewIPAddressResource,
+		NewIPWarmupResource,
+		NewPartnerAccountResource,
 	}
 }
 
@@ -135,5 +149,8 @@ func (p *SendgridProvider) DataSources(_ context.Context) []func() datasource.Da
 		NewSegmentDataSource,
 		NewSingleSendDataSource,
 		NewIPPoolDataSource,
+		NewTeammateDataSource,
+		NewIPAddressDataSource,
+		NewPartnerOfferingsDataSource,
 	}
 }

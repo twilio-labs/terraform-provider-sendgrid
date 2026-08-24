@@ -11,7 +11,7 @@ import (
 // inject query parameters, by round-tripping it through a real client call.
 func TestEscPreventsPathAndQueryInjection(t *testing.T) {
 	var gotPath, gotQuery string
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
 		gotQuery = r.URL.RawQuery
 		w.WriteHeader(http.StatusOK)

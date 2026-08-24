@@ -1,0 +1,7 @@
+# These owners are requested for review on every pull request.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# TODO: update this to the actual owning team once one is designated —
+# a single-person CODEOWNERS entry is a bus-factor-of-one risk for a
+# repository intended for production use.
+*       @mprior11

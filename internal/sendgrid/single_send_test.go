@@ -11,7 +11,7 @@ import (
 func TestScheduleSingleSend(t *testing.T) {
 	var gotMethod, gotPath string
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
 		gotPath = r.URL.Path
 		b, _ := io.ReadAll(r.Body)
@@ -41,7 +41,7 @@ func TestScheduleSingleSend(t *testing.T) {
 
 func TestScheduleSingleSendNow(t *testing.T) {
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		b, _ := io.ReadAll(r.Body)
 		_ = json.Unmarshal(b, &gotBody)
 		w.Header().Set("Content-Type", "application/json")
@@ -63,7 +63,7 @@ func TestScheduleSingleSendNow(t *testing.T) {
 
 func TestUnscheduleSingleSend(t *testing.T) {
 	var gotMethod, gotPath string
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
 		gotPath = r.URL.Path
 		w.WriteHeader(http.StatusNoContent)

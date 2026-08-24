@@ -8,7 +8,7 @@ import (
 
 func TestDeleteListQueryParameter(t *testing.T) {
 	var gotQuery string
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotQuery = r.URL.RawQuery
 		w.WriteHeader(http.StatusNoContent)
 	})

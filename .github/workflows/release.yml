@@ -1,0 +1,58 @@
+# Terraform Provider release workflow.
+#
+# DISABLED (workflow_dispatch only) while this repo is private under
+# github.com/twilio-internal — see the header comment in test.yml for the
+# full explanation (no package-registry egress on self-hosted runners) and
+# exactly what to change when this repo moves to a public org. Releases run
+# via .buildkite/pipeline.yml's tag-gated `release` step instead, for now.
+#
+# GPG import and GoReleaser both run via plain shell instead of third-party
+# marketplace actions (crazy-max/ghaction-import-gpg, goreleaser-action) —
+# see the comment at the top of test.yml for why: this org's Actions
+# allow-list doesn't cover either of them.
+
+on:
+  workflow_dispatch: {}
+
+# Releases need permissions to read and write repository contents.
+# GitHub considers creating releases and uploading assets as writing contents.
+permissions:
+  contents: write
+
+env:
+  GORELEASER_VERSION: 'v2.18.0'
+
+jobs:
+  goreleaser:
+    runs-on: twilio-internal-ubuntu-latest-slim
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Allow goreleaser to access older tag information for the changelog.
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.PASSPHRASE }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent
+          FINGERPRINT=$(gpg --list-secret-keys --keyid-format=long | awk '/^sec/{print $2}' | cut -d'/' -f2 | head -n1)
+          echo "GPG_FINGERPRINT=${FINGERPRINT}" >> "$GITHUB_ENV"
+          # Prove the key can actually sign non-interactively before goreleaser
+          # relies on it — a bad passphrase should fail loudly here, not
+          # halfway through an otherwise-successful release.
+          echo "test" | gpg --batch --pinentry-mode loopback --passphrase "$PASSPHRASE" \
+            --local-user "${FINGERPRINT}" --detach-sign --armor --output /dev/null -
+      - name: Install GoReleaser
+        run: go install "github.com/goreleaser/goreleaser/v2@${GORELEASER_VERSION}"
+      - name: Run GoReleaser
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_FINGERPRINT: ${{ env.GPG_FINGERPRINT }}
+        run: goreleaser release --clean
