@@ -88,7 +88,11 @@ func (r *eventWebhookResource) Schema(_ context.Context, _ resource.SchemaReques
 			},
 			"friendly_name": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "An optional, non-unique friendly name for this webhook.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"group_resubscribe": eventFlag("Receive group resubscribe events. Requires Subscription Tracking."),
 			"delivered":         eventFlag("Receive delivered events."),
@@ -103,7 +107,11 @@ func (r *eventWebhookResource) Schema(_ context.Context, _ resource.SchemaReques
 			"dropped":           eventFlag("Receive dropped events."),
 			"oauth_client_id": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "OAuth client ID SendGrid uses to generate an access token for this webhook.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"oauth_client_secret": schema.StringAttribute{
 				Optional:    true,
@@ -112,7 +120,11 @@ func (r *eventWebhookResource) Schema(_ context.Context, _ resource.SchemaReques
 			},
 			"oauth_token_url": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "URL SendGrid sends the OAuth client ID and secret to in order to generate an access token.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"signed": schema.BoolAttribute{
 				Optional:    true,
