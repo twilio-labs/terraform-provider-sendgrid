@@ -82,12 +82,12 @@ func (c *Client) UpdateIPAddress(ctx context.Context, ip string, isAutoWarmup, i
 // dedicated IP address.
 func (c *Client) ListIPAddressSubusers(ctx context.Context, ip string) ([]string, error) {
 	var out struct {
-		Subusers []string `json:"subusers"`
+		Result []string `json:"result"`
 	}
 	if err := c.get(ctx, "/v3/send_ips/ips/"+esc(ip)+"/subusers", &out); err != nil {
 		return nil, err
 	}
-	return out.Subusers, nil
+	return out.Result, nil
 }
 
 // AddSubusersToIPAddress assigns a batch of Subuser IDs to a dedicated IP
