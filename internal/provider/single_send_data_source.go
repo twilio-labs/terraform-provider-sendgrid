@@ -20,6 +20,16 @@ type singleSendDataSource struct {
 	client *sg.Client
 }
 
+type singleSendDataSourceModel struct {
+	ID          types.String                `tfsdk:"id"`
+	Name        types.String                `tfsdk:"name"`
+	Categories  types.List                  `tfsdk:"categories"`
+	SendAt      types.String                `tfsdk:"send_at"`
+	Status      types.String                `tfsdk:"status"`
+	SendTo      *singleSendToModel          `tfsdk:"send_to"`
+	EmailConfig *singleSendEmailConfigModel `tfsdk:"email_config"`
+}
+
 func (d *singleSendDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_single_send"
 }
@@ -69,7 +79,7 @@ func (d *singleSendDataSource) Configure(_ context.Context, req datasource.Confi
 }
 
 func (d *singleSendDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var config singleSendResourceModel
+	var config singleSendDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -81,7 +91,38 @@ func (d *singleSendDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	resp.Diagnostics.Append(flattenSingleSend(ctx, s, &config)...)
-	config.SendAt = types.StringValue("")
+	config.ID = types.StringValue(s.ID)
+	config.Name = types.StringValue(s.Name)
+	config.Status = types.StringValue(s.Status)
+	// send_at is a one-time scheduling instruction, not returned by the API
+	// in a directly comparable form.
+	config.SendAt = types.StringNull()
+	resp.Diagnostics.Append(setStringList(ctx, &config.Categories, s.Categories)...)
+
+	config.SendTo = &singleSendToModel{All: types.BoolValue(s.SendTo.All)}
+	resp.Diagnostics.Append(setStringList(ctx, &config.SendTo.ListIDs, s.SendTo.ListIDs)...)
+	resp.Diagnostics.Append(setStringList(ctx, &config.SendTo.SegmentIDs, s.SendTo.SegmentIDs)...)
+
+	config.EmailConfig = &singleSendEmailConfigModel{
+		Subject:              types.StringValue(s.EmailConfig.Subject),
+		HTMLContent:          types.StringValue(s.EmailConfig.HTMLContent),
+		PlainContent:         types.StringValue(s.EmailConfig.PlainContent),
+		GeneratePlainContent: types.BoolValue(s.EmailConfig.GeneratePlainContent),
+		DesignID:             types.StringValue(s.EmailConfig.DesignID),
+		Editor:               types.StringValue(s.EmailConfig.Editor),
+		CustomUnsubscribeURL: types.StringValue(s.EmailConfig.CustomUnsubscribeURL),
+		IPPool:               types.StringValue(s.EmailConfig.IPPool),
+	}
+	if s.EmailConfig.SuppressionGroupID != nil {
+		config.EmailConfig.SuppressionGroupID = types.Int64Value(*s.EmailConfig.SuppressionGroupID)
+	} else {
+		config.EmailConfig.SuppressionGroupID = types.Int64Null()
+	}
+	if s.EmailConfig.SenderID != nil {
+		config.EmailConfig.SenderID = types.Int64Value(*s.EmailConfig.SenderID)
+	} else {
+		config.EmailConfig.SenderID = types.Int64Null()
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

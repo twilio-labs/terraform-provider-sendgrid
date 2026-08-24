@@ -28,7 +28,7 @@ func (c *Client) CreateAPIKey(ctx context.Context, name string, scopes []string,
 // never returned.
 func (c *Client) GetAPIKey(ctx context.Context, id string, opts ...RequestOption) (*APIKey, error) {
 	var out APIKey
-	if err := c.get(ctx, "/v3/api_keys/"+id, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/api_keys/"+esc(id), &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -43,7 +43,7 @@ func (c *Client) GetAPIKey(ctx context.Context, id string, opts ...RequestOption
 func (c *Client) UpdateAPIKey(ctx context.Context, id, name string, scopes []string, opts ...RequestOption) (*APIKey, error) {
 	body := map[string]any{"name": name, "scopes": scopes}
 	var out APIKey
-	if err := c.put(ctx, "/v3/api_keys/"+id, body, &out, opts...); err != nil {
+	if err := c.put(ctx, "/v3/api_keys/"+esc(id), body, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -53,7 +53,7 @@ func (c *Client) UpdateAPIKey(ctx context.Context, id, name string, scopes []str
 func (c *Client) UpdateAPIKeyName(ctx context.Context, id, name string, opts ...RequestOption) (*APIKey, error) {
 	body := map[string]any{"name": name}
 	var out APIKey
-	if err := c.patch(ctx, "/v3/api_keys/"+id, body, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/api_keys/"+esc(id), body, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -61,5 +61,5 @@ func (c *Client) UpdateAPIKeyName(ctx context.Context, id, name string, opts ...
 
 // DeleteAPIKey revokes an API key.
 func (c *Client) DeleteAPIKey(ctx context.Context, id string, opts ...RequestOption) error {
-	return c.delete(ctx, "/v3/api_keys/"+id, opts...)
+	return c.delete(ctx, "/v3/api_keys/"+esc(id), opts...)
 }

@@ -65,7 +65,7 @@ func (c *Client) CreateEventWebhook(ctx context.Context, p EventWebhookParams, o
 // GetEventWebhook retrieves a single Event Webhook by ID.
 func (c *Client) GetEventWebhook(ctx context.Context, id string, opts ...RequestOption) (*EventWebhook, error) {
 	var out EventWebhook
-	if err := c.get(ctx, "/v3/user/webhooks/event/settings/"+id, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/user/webhooks/event/settings/"+esc(id), &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -74,7 +74,7 @@ func (c *Client) GetEventWebhook(ctx context.Context, id string, opts ...Request
 // UpdateEventWebhook updates an existing Event Webhook by ID.
 func (c *Client) UpdateEventWebhook(ctx context.Context, id string, p EventWebhookParams, opts ...RequestOption) (*EventWebhook, error) {
 	var out EventWebhook
-	if err := c.patch(ctx, "/v3/user/webhooks/event/settings/"+id, p, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/user/webhooks/event/settings/"+esc(id), p, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -82,7 +82,7 @@ func (c *Client) UpdateEventWebhook(ctx context.Context, id string, p EventWebho
 
 // DeleteEventWebhook deletes an Event Webhook by ID.
 func (c *Client) DeleteEventWebhook(ctx context.Context, id string, opts ...RequestOption) error {
-	return c.delete(ctx, "/v3/user/webhooks/event/settings/"+id, opts...)
+	return c.delete(ctx, "/v3/user/webhooks/event/settings/"+esc(id), opts...)
 }
 
 // SetEventWebhookSigned enables or disables signature verification for an
@@ -92,7 +92,7 @@ func (c *Client) SetEventWebhookSigned(ctx context.Context, id string, enabled b
 	var out struct {
 		PublicKey string `json:"public_key"`
 	}
-	if err := c.patch(ctx, "/v3/user/webhooks/event/settings/signed/"+id, body, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/user/webhooks/event/settings/signed/"+esc(id), body, &out, opts...); err != nil {
 		return "", err
 	}
 	return out.PublicKey, nil
@@ -104,7 +104,7 @@ func (c *Client) GetEventWebhookPublicKey(ctx context.Context, id string, opts .
 	var out struct {
 		PublicKey string `json:"public_key"`
 	}
-	if err := c.get(ctx, "/v3/user/webhooks/event/settings/signed/"+id, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/user/webhooks/event/settings/signed/"+esc(id), &out, opts...); err != nil {
 		return "", err
 	}
 	return out.PublicKey, nil

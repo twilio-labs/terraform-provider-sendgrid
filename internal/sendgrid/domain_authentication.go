@@ -2,7 +2,6 @@ package sendgrid
 
 import (
 	"context"
-	"fmt"
 )
 
 // DNSRecord is a single DNS record required to validate a domain
@@ -72,7 +71,7 @@ func (c *Client) CreateDomainAuthentication(ctx context.Context, req CreateDomai
 // GetDomainAuthentication retrieves a single authenticated domain by ID.
 func (c *Client) GetDomainAuthentication(ctx context.Context, id string, opts ...RequestOption) (*DomainAuthentication, error) {
 	var out DomainAuthentication
-	if err := c.get(ctx, "/v3/whitelabel/domains/"+id, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/whitelabel/domains/"+esc(id), &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -83,7 +82,7 @@ func (c *Client) GetDomainAuthentication(ctx context.Context, id string, opts ..
 func (c *Client) UpdateDomainAuthentication(ctx context.Context, id string, defaultDomain, customSPF bool, opts ...RequestOption) (*DomainAuthentication, error) {
 	body := map[string]any{"default": defaultDomain, "custom_spf": customSPF}
 	var out DomainAuthentication
-	if err := c.patch(ctx, "/v3/whitelabel/domains/"+id, body, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/whitelabel/domains/"+esc(id), body, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -91,5 +90,5 @@ func (c *Client) UpdateDomainAuthentication(ctx context.Context, id string, defa
 
 // DeleteDomainAuthentication removes an authenticated domain.
 func (c *Client) DeleteDomainAuthentication(ctx context.Context, id string, opts ...RequestOption) error {
-	return c.delete(ctx, fmt.Sprintf("/v3/whitelabel/domains/%s", id), opts...)
+	return c.delete(ctx, "/v3/whitelabel/domains/"+esc(id), opts...)
 }

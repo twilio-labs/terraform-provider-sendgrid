@@ -20,6 +20,12 @@ type ipPoolDataSource struct {
 	client *sg.Client
 }
 
+type ipPoolDataSourceModel struct {
+	ID   types.String `tfsdk:"id"`
+	Name types.String `tfsdk:"name"`
+	IPs  types.Set    `tfsdk:"ips"`
+}
+
 func (d *ipPoolDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_ip_pool"
 }
@@ -30,7 +36,7 @@ func (d *ipPoolDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "The pool's name (identical to `name`)."},
 			"name": schema.StringAttribute{Required: true, Description: "The pool's name."},
-			"ips":  schema.ListAttribute{Computed: true, ElementType: types.StringType, Description: "The IP addresses assigned to this pool."},
+			"ips":  schema.SetAttribute{Computed: true, ElementType: types.StringType, Description: "The IP addresses assigned to this pool."},
 		},
 	}
 }
@@ -42,7 +48,7 @@ func (d *ipPoolDataSource) Configure(_ context.Context, req datasource.Configure
 }
 
 func (d *ipPoolDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var config ipPoolResourceModel
+	var config ipPoolDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -56,6 +62,6 @@ func (d *ipPoolDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 	config.ID = types.StringValue(pool.Name)
 	config.Name = types.StringValue(pool.Name)
-	resp.Diagnostics.Append(setStringList(ctx, &config.IPs, pool.IPs)...)
+	resp.Diagnostics.Append(setStringSet(ctx, &config.IPs, pool.IPs)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

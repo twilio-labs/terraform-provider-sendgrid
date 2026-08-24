@@ -10,9 +10,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
+
+// esc percent-encodes a caller-supplied value (a resource ID, name, or IP)
+// before it's concatenated into a request path, so a value containing "/",
+// "?", "#", or other URL-meaningful characters can't redirect the request
+// to a different path or inject query parameters.
+func esc(s string) string {
+	return url.PathEscape(s)
+}
 
 const DefaultHost = "https://api.sendgrid.com"
 

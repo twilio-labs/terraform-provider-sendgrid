@@ -30,7 +30,7 @@ func (c *Client) CreateSegment(ctx context.Context, name, queryDSL string, paren
 func (c *Client) GetSegment(ctx context.Context, id string, opts ...RequestOption) (*Segment, error) {
 	opts = append(opts, Query("contacts_sample", "false"))
 	var out Segment
-	if err := c.get(ctx, "/v3/marketing/segments/2.0/"+id, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/marketing/segments/2.0/"+esc(id), &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -41,7 +41,7 @@ func (c *Client) GetSegment(ctx context.Context, id string, opts ...RequestOptio
 func (c *Client) UpdateSegment(ctx context.Context, id, name, queryDSL string, opts ...RequestOption) (*Segment, error) {
 	body := map[string]any{"name": name, "query_dsl": queryDSL}
 	var out Segment
-	if err := c.patch(ctx, "/v3/marketing/segments/2.0/"+id, body, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/marketing/segments/2.0/"+esc(id), body, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -49,5 +49,5 @@ func (c *Client) UpdateSegment(ctx context.Context, id, name, queryDSL string, o
 
 // DeleteSegment deletes a segment.
 func (c *Client) DeleteSegment(ctx context.Context, id string, opts ...RequestOption) error {
-	return c.delete(ctx, "/v3/marketing/segments/2.0/"+id, opts...)
+	return c.delete(ctx, "/v3/marketing/segments/2.0/"+esc(id), opts...)
 }

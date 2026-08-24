@@ -57,23 +57,43 @@ func (r *googleAnalyticsSettingsResource) Schema(_ context.Context, _ resource.S
 			},
 			"utm_campaign": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "The name of the campaign.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"utm_content": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Used to differentiate ads.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"utm_medium": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "The marketing medium, e.g. \"email\".",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"utm_source": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "The referrer source.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"utm_term": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Paid keywords.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

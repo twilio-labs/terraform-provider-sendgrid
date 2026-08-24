@@ -31,7 +31,7 @@ resource "sendgrid_ip_pool" "marketing" {
 
 ### Optional
 
-- `ips` (List of String) The IP addresses assigned to this pool.
+- `ips` (Set of String) The IP addresses assigned to this pool.
 
 ### Read-Only
 

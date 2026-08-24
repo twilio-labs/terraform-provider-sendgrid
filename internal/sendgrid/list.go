@@ -22,7 +22,7 @@ func (c *Client) CreateList(ctx context.Context, name string, opts ...RequestOpt
 // GetList retrieves a single contact list by ID.
 func (c *Client) GetList(ctx context.Context, id string, opts ...RequestOption) (*List, error) {
 	var out List
-	if err := c.get(ctx, "/v3/marketing/lists/"+id, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/marketing/lists/"+esc(id), &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -32,7 +32,7 @@ func (c *Client) GetList(ctx context.Context, id string, opts ...RequestOption) 
 func (c *Client) UpdateList(ctx context.Context, id, name string, opts ...RequestOption) (*List, error) {
 	body := map[string]any{"name": name}
 	var out List
-	if err := c.patch(ctx, "/v3/marketing/lists/"+id, body, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/marketing/lists/"+esc(id), body, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -47,5 +47,5 @@ func (c *Client) DeleteList(ctx context.Context, id string, deleteContacts bool,
 		value = "true"
 	}
 	opts = append(opts, Query("delete_contacts", value))
-	return c.delete(ctx, "/v3/marketing/lists/"+id, opts...)
+	return c.delete(ctx, "/v3/marketing/lists/"+esc(id), opts...)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -88,8 +89,12 @@ func (r *singleSendResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			},
 			"categories": schema.ListAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
 				Description: "Categories to associate with this Single Send, for filtering statistics. Up to 10.",
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"send_at": schema.StringAttribute{
 				Optional: true,
@@ -106,13 +111,21 @@ func (r *singleSendResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Attributes: map[string]schema.Attribute{
 					"list_ids": schema.ListAttribute{
 						Optional:    true,
+						Computed:    true,
 						ElementType: types.StringType,
 						Description: "Recipient list IDs. Up to 50.",
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"segment_ids": schema.ListAttribute{
 						Optional:    true,
+						Computed:    true,
 						ElementType: types.StringType,
 						Description: "Recipient segment IDs. Up to 10.",
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"all": schema.BoolAttribute{
 						Optional:    true,
@@ -128,11 +141,19 @@ func (r *singleSendResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Attributes: map[string]schema.Attribute{
 					"subject": schema.StringAttribute{
 						Optional:    true,
+						Computed:    true,
 						Description: "The subject line. Omit when using `design_id`.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"html_content": schema.StringAttribute{
 						Optional:    true,
+						Computed:    true,
 						Description: "The HTML content. Omit when using `design_id`.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"plain_content": schema.StringAttribute{
 						Optional:    true,
@@ -150,7 +171,11 @@ func (r *singleSendResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					},
 					"design_id": schema.StringAttribute{
 						Optional:    true,
+						Computed:    true,
 						Description: "A saved design ID, used in place of `html_content`/`plain_content`/`subject`.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"editor": schema.StringAttribute{
 						Optional:    true,
@@ -167,7 +192,11 @@ func (r *singleSendResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					},
 					"custom_unsubscribe_url": schema.StringAttribute{
 						Optional:    true,
+						Computed:    true,
 						Description: "A custom unsubscribe URL. Required unless `suppression_group_id` is set.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"sender_id": schema.Int64Attribute{
 						Optional:    true,
@@ -175,7 +204,11 @@ func (r *singleSendResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					},
 					"ip_pool": schema.StringAttribute{
 						Optional:    true,
+						Computed:    true,
 						Description: "The name of the IP pool to send from.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},
@@ -189,14 +222,28 @@ func (r *singleSendResource) Configure(_ context.Context, req resource.Configure
 	r.client = client
 }
 
+// singleSendParamsFromModel builds API params from m. send_to and
+// email_config are schema.Required, so the framework's own config
+// validation prevents Create/Update from ever running with either pointer
+// nil in normal operation — the nil checks here are cheap local insurance
+// against that invariant living only in a separate file's schema.
 func singleSendParamsFromModel(ctx context.Context, m singleSendResourceModel) (sg.SingleSendParams, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	sendTo := m.SendTo
+	if sendTo == nil {
+		sendTo = &singleSendToModel{}
+	}
+	emailConfig := m.EmailConfig
+	if emailConfig == nil {
+		emailConfig = &singleSendEmailConfigModel{}
+	}
+
 	categories, d := stringListToSlice(ctx, m.Categories)
 	diags.Append(d...)
-	listIDs, d := stringListToSlice(ctx, m.SendTo.ListIDs)
+	listIDs, d := stringListToSlice(ctx, sendTo.ListIDs)
 	diags.Append(d...)
-	segmentIDs, d := stringListToSlice(ctx, m.SendTo.SegmentIDs)
+	segmentIDs, d := stringListToSlice(ctx, sendTo.SegmentIDs)
 	diags.Append(d...)
 
 	p := sg.SingleSendParams{
@@ -205,25 +252,25 @@ func singleSendParamsFromModel(ctx context.Context, m singleSendResourceModel) (
 		SendTo: sg.SingleSendTo{
 			ListIDs:    listIDs,
 			SegmentIDs: segmentIDs,
-			All:        m.SendTo.All.ValueBool(),
+			All:        sendTo.All.ValueBool(),
 		},
 		EmailConfig: sg.SingleSendEmailConfig{
-			Subject:              m.EmailConfig.Subject.ValueString(),
-			HTMLContent:          m.EmailConfig.HTMLContent.ValueString(),
-			PlainContent:         m.EmailConfig.PlainContent.ValueString(),
-			GeneratePlainContent: m.EmailConfig.GeneratePlainContent.ValueBool(),
-			DesignID:             m.EmailConfig.DesignID.ValueString(),
-			Editor:               m.EmailConfig.Editor.ValueString(),
-			CustomUnsubscribeURL: m.EmailConfig.CustomUnsubscribeURL.ValueString(),
-			IPPool:               m.EmailConfig.IPPool.ValueString(),
+			Subject:              emailConfig.Subject.ValueString(),
+			HTMLContent:          emailConfig.HTMLContent.ValueString(),
+			PlainContent:         emailConfig.PlainContent.ValueString(),
+			GeneratePlainContent: emailConfig.GeneratePlainContent.ValueBool(),
+			DesignID:             emailConfig.DesignID.ValueString(),
+			Editor:               emailConfig.Editor.ValueString(),
+			CustomUnsubscribeURL: emailConfig.CustomUnsubscribeURL.ValueString(),
+			IPPool:               emailConfig.IPPool.ValueString(),
 		},
 	}
-	if !m.EmailConfig.SuppressionGroupID.IsNull() && !m.EmailConfig.SuppressionGroupID.IsUnknown() {
-		v := m.EmailConfig.SuppressionGroupID.ValueInt64()
+	if !emailConfig.SuppressionGroupID.IsNull() && !emailConfig.SuppressionGroupID.IsUnknown() {
+		v := emailConfig.SuppressionGroupID.ValueInt64()
 		p.EmailConfig.SuppressionGroupID = &v
 	}
-	if !m.EmailConfig.SenderID.IsNull() && !m.EmailConfig.SenderID.IsUnknown() {
-		v := m.EmailConfig.SenderID.ValueInt64()
+	if !emailConfig.SenderID.IsNull() && !emailConfig.SenderID.IsUnknown() {
+		v := emailConfig.SenderID.ValueInt64()
 		p.EmailConfig.SenderID = &v
 	}
 	return p, diags
@@ -276,7 +323,7 @@ func (r *singleSendResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	sendAt := plan.SendAt.ValueString()
+	wantSendAt := plan.SendAt.ValueString()
 
 	params, diags := singleSendParamsFromModel(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -290,22 +337,24 @@ func (r *singleSendResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// The Single Send now exists remotely (as a draft). Persist it before
-	// attempting to schedule it below, so a failure there doesn't leave
-	// Terraform unable to track (and destroy) the draft.
+	// The Single Send now exists remotely as an unscheduled draft. Persist
+	// that fact before attempting to schedule it below, so a failure there
+	// doesn't leave Terraform unable to track (and destroy) the draft, and
+	// so state accurately reflects "not scheduled" if scheduling fails.
 	resp.Diagnostics.Append(flattenSingleSend(ctx, s, &plan)...)
-	plan.SendAt = types.StringValue(sendAt)
+	plan.SendAt = types.StringNull()
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if sendAt != "" {
-		status, err := r.client.ScheduleSingleSend(ctx, s.ID, sendAt)
+	if wantSendAt != "" {
+		status, err := r.client.ScheduleSingleSend(ctx, s.ID, wantSendAt)
 		if err != nil {
 			resp.Diagnostics.AddError("Error scheduling single send", err.Error())
 			return
 		}
+		plan.SendAt = types.StringValue(wantSendAt)
 		plan.Status = types.StringValue(status)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	}
@@ -344,7 +393,8 @@ func (r *singleSendResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	sendAt := plan.SendAt.ValueString()
+	wantSendAt := plan.SendAt.ValueString()
+	curSendAt := state.SendAt.ValueString()
 
 	params, diags := singleSendParamsFromModel(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -360,25 +410,32 @@ func (r *singleSendResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	plan.ID = state.ID
 	resp.Diagnostics.Append(flattenSingleSend(ctx, s, &plan)...)
-	plan.SendAt = types.StringValue(sendAt)
+	// The content update above is confirmed-applied; checkpoint send_at and
+	// status at their last-known-good (unchanged) values before attempting
+	// the separate schedule/unschedule call below, so a failure there
+	// doesn't commit an unapplied schedule change to state.
+	plan.SendAt = state.SendAt
+	plan.Status = state.Status
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if sendAt != state.SendAt.ValueString() {
-		if sendAt == "" {
+	if wantSendAt != curSendAt {
+		if wantSendAt == "" {
 			if err := r.client.UnscheduleSingleSend(ctx, state.ID.ValueString()); err != nil {
 				resp.Diagnostics.AddError("Error unscheduling single send", err.Error())
 				return
 			}
+			plan.SendAt = types.StringNull()
 			plan.Status = types.StringValue("draft")
 		} else {
-			status, err := r.client.ScheduleSingleSend(ctx, state.ID.ValueString(), sendAt)
+			status, err := r.client.ScheduleSingleSend(ctx, state.ID.ValueString(), wantSendAt)
 			if err != nil {
 				resp.Diagnostics.AddError("Error scheduling single send", err.Error())
 				return
 			}
+			plan.SendAt = types.StringValue(wantSendAt)
 			plan.Status = types.StringValue(status)
 		}
 		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

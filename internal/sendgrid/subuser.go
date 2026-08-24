@@ -2,7 +2,6 @@ package sendgrid
 
 import (
 	"context"
-	"fmt"
 )
 
 // Subuser represents a SendGrid subuser account. ID is the subuser's numeric
@@ -96,7 +95,7 @@ func (c *Client) UpdateSubuserIPs(ctx context.Context, username string, ips []st
 	var out struct {
 		IPs []string `json:"ips"`
 	}
-	if err := c.put(ctx, "/v3/subusers/"+username+"/ips", ips, &out, opts...); err != nil {
+	if err := c.put(ctx, "/v3/subusers/"+esc(username)+"/ips", ips, &out, opts...); err != nil {
 		return nil, err
 	}
 	return out.IPs, nil
@@ -105,10 +104,10 @@ func (c *Client) UpdateSubuserIPs(ctx context.Context, username string, ips []st
 // UpdateSubuserDisabled enables or disables a subuser.
 func (c *Client) UpdateSubuserDisabled(ctx context.Context, username string, disabled bool, opts ...RequestOption) error {
 	body := map[string]any{"disabled": disabled}
-	return c.patch(ctx, "/v3/subusers/"+username, body, nil, opts...)
+	return c.patch(ctx, "/v3/subusers/"+esc(username), body, nil, opts...)
 }
 
 // DeleteSubuser permanently deletes a subuser.
 func (c *Client) DeleteSubuser(ctx context.Context, username string, opts ...RequestOption) error {
-	return c.delete(ctx, fmt.Sprintf("/v3/subusers/%s", username), opts...)
+	return c.delete(ctx, "/v3/subusers/"+esc(username), opts...)
 }

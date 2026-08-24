@@ -47,7 +47,7 @@ func (c *Client) GetCustomField(ctx context.Context, id string, opts ...RequestO
 func (c *Client) UpdateCustomField(ctx context.Context, id, name string, opts ...RequestOption) (*CustomField, error) {
 	body := map[string]any{"name": name}
 	var out CustomField
-	if err := c.patch(ctx, "/v3/marketing/field_definitions/"+id, body, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/marketing/field_definitions/"+esc(id), body, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -55,5 +55,5 @@ func (c *Client) UpdateCustomField(ctx context.Context, id, name string, opts ..
 
 // DeleteCustomField deletes a custom field definition.
 func (c *Client) DeleteCustomField(ctx context.Context, id string, opts ...RequestOption) error {
-	return c.delete(ctx, "/v3/marketing/field_definitions/"+id, opts...)
+	return c.delete(ctx, "/v3/marketing/field_definitions/"+esc(id), opts...)
 }

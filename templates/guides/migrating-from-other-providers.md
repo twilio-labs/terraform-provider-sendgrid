@@ -23,9 +23,9 @@ attribute-level schema details (defaults, computed fields) differ between the tw
 ## From `kenzo0107/sendgrid`
 
 That provider covers a broader set of resources than this one currently does (e.g. `sendgrid_design`,
-`sendgrid_ip_pool`, `sendgrid_sso_teammate`). If you depend on a resource this provider doesn't yet implement,
-keep using `kenzo0107/sendgrid` for those resources — Terraform supports multiple providers of the same type
-with different local names in one configuration:
+`sendgrid_sso_teammate`). If you depend on a resource this provider doesn't yet implement, keep using
+`kenzo0107/sendgrid` for those resources — Terraform supports multiple providers of the same type with
+different local names in one configuration:
 
 ```terraform
 terraform {

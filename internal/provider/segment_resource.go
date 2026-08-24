@@ -67,6 +67,7 @@ func (r *segmentResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 			"parent_list_ids": schema.ListAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
 				Description: "Restricts this segment to contacts on these list IDs. Cannot be changed after creation.",
 				PlanModifiers: []planmodifier.List{

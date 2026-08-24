@@ -57,24 +57,44 @@ func (r *subscriptionTrackingSettingsResource) Schema(_ context.Context, _ resou
 			},
 			"html_content": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "The HTML for the unsubscribe link, appended to the bottom of HTML emails.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"landing": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "The HTML displayed on SendGrid's hosted landing page after a recipient clicks unsubscribe.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"plain_content": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 				Description: "The plain-text unsubscribe content, appended to the bottom of plain-text emails. " +
 					"Must contain the `<% %>` tag, or recipients will have no URL to unsubscribe from.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"replace": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "A custom replacement tag to place unsubscribe content anywhere in an email template.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"url": schema.StringAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "The URL where unsubscribing recipients are sent, if not using SendGrid's hosted landing page.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

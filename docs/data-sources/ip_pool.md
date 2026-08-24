@@ -28,4 +28,4 @@ data "sendgrid_ip_pool" "marketing" {
 ### Read-Only
 
 - `id` (String) The pool's name (identical to `name`).
-- `ips` (List of String) The IP addresses assigned to this pool.
+- `ips` (Set of String) The IP addresses assigned to this pool.

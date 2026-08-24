@@ -20,6 +20,14 @@ type segmentDataSource struct {
 	client *sg.Client
 }
 
+type segmentDataSourceModel struct {
+	ID            types.String `tfsdk:"id"`
+	Name          types.String `tfsdk:"name"`
+	QueryDSL      types.String `tfsdk:"query_dsl"`
+	ParentListIDs types.List   `tfsdk:"parent_list_ids"`
+	ContactsCount types.Int64  `tfsdk:"contacts_count"`
+}
+
 func (d *segmentDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_segment"
 }
@@ -44,7 +52,7 @@ func (d *segmentDataSource) Configure(_ context.Context, req datasource.Configur
 }
 
 func (d *segmentDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var config segmentResourceModel
+	var config segmentDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -56,6 +64,10 @@ func (d *segmentDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	resp.Diagnostics.Append(flattenSegment(ctx, s, &config)...)
+	config.ID = types.StringValue(s.ID)
+	config.Name = types.StringValue(s.Name)
+	config.QueryDSL = types.StringValue(s.QueryDSL)
+	config.ContactsCount = types.Int64Value(s.ContactsCount)
+	resp.Diagnostics.Append(setStringList(ctx, &config.ParentListIDs, s.ParentListIDs)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

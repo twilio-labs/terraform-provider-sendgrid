@@ -20,6 +20,12 @@ type listDataSource struct {
 	client *sg.Client
 }
 
+type listDataSourceModel struct {
+	ID           types.String `tfsdk:"id"`
+	Name         types.String `tfsdk:"name"`
+	ContactCount types.Int64  `tfsdk:"contact_count"`
+}
+
 func (d *listDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_list"
 }
@@ -42,7 +48,7 @@ func (d *listDataSource) Configure(_ context.Context, req datasource.ConfigureRe
 }
 
 func (d *listDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var config listResourceModel
+	var config listDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -54,7 +60,8 @@ func (d *listDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	flattenList(l, &config)
 	config.ID = types.StringValue(l.ID)
+	config.Name = types.StringValue(l.Name)
+	config.ContactCount = types.Int64Value(l.ContactCount)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

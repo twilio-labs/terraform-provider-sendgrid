@@ -52,7 +52,7 @@ func (c *Client) CreateTemplate(ctx context.Context, name, generation string, op
 // versions.
 func (c *Client) GetTemplate(ctx context.Context, id string, opts ...RequestOption) (*Template, error) {
 	var out Template
-	if err := c.get(ctx, "/v3/templates/"+id, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/templates/"+esc(id), &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -63,7 +63,7 @@ func (c *Client) GetTemplate(ctx context.Context, id string, opts ...RequestOpti
 func (c *Client) UpdateTemplate(ctx context.Context, id, name string, opts ...RequestOption) (*Template, error) {
 	body := map[string]any{"name": name}
 	var out Template
-	if err := c.patch(ctx, "/v3/templates/"+id, body, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/templates/"+esc(id), body, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -71,13 +71,13 @@ func (c *Client) UpdateTemplate(ctx context.Context, id, name string, opts ...Re
 
 // DeleteTemplate deletes a transactional template and all of its versions.
 func (c *Client) DeleteTemplate(ctx context.Context, id string, opts ...RequestOption) error {
-	return c.delete(ctx, "/v3/templates/"+id, opts...)
+	return c.delete(ctx, "/v3/templates/"+esc(id), opts...)
 }
 
 // CreateTemplateVersion creates a new version of a transactional template.
 func (c *Client) CreateTemplateVersion(ctx context.Context, templateID string, v TemplateVersion, opts ...RequestOption) (*TemplateVersion, error) {
 	var out TemplateVersion
-	if err := c.post(ctx, "/v3/templates/"+templateID+"/versions", v, &out, opts...); err != nil {
+	if err := c.post(ctx, "/v3/templates/"+esc(templateID)+"/versions", v, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -86,7 +86,7 @@ func (c *Client) CreateTemplateVersion(ctx context.Context, templateID string, v
 // GetTemplateVersion retrieves a single template version.
 func (c *Client) GetTemplateVersion(ctx context.Context, templateID, versionID string, opts ...RequestOption) (*TemplateVersion, error) {
 	var out TemplateVersion
-	if err := c.get(ctx, "/v3/templates/"+templateID+"/versions/"+versionID, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/templates/"+esc(templateID)+"/versions/"+esc(versionID), &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -95,7 +95,7 @@ func (c *Client) GetTemplateVersion(ctx context.Context, templateID, versionID s
 // UpdateTemplateVersion edits the content of a template version.
 func (c *Client) UpdateTemplateVersion(ctx context.Context, templateID, versionID string, v TemplateVersion, opts ...RequestOption) (*TemplateVersion, error) {
 	var out TemplateVersion
-	if err := c.patch(ctx, "/v3/templates/"+templateID+"/versions/"+versionID, v, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/templates/"+esc(templateID)+"/versions/"+esc(versionID), v, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -103,5 +103,5 @@ func (c *Client) UpdateTemplateVersion(ctx context.Context, templateID, versionI
 
 // DeleteTemplateVersion deletes a template version.
 func (c *Client) DeleteTemplateVersion(ctx context.Context, templateID, versionID string, opts ...RequestOption) error {
-	return c.delete(ctx, "/v3/templates/"+templateID+"/versions/"+versionID, opts...)
+	return c.delete(ctx, "/v3/templates/"+esc(templateID)+"/versions/"+esc(versionID), opts...)
 }

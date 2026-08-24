@@ -59,7 +59,7 @@ func (c *Client) CreateSingleSend(ctx context.Context, p SingleSendParams, opts 
 // GetSingleSend retrieves a single Single Send by ID.
 func (c *Client) GetSingleSend(ctx context.Context, id string, opts ...RequestOption) (*SingleSend, error) {
 	var out SingleSend
-	if err := c.get(ctx, "/v3/marketing/singlesends/"+id, &out, opts...); err != nil {
+	if err := c.get(ctx, "/v3/marketing/singlesends/"+esc(id), &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -69,7 +69,7 @@ func (c *Client) GetSingleSend(ctx context.Context, id string, opts ...RequestOp
 // already been scheduled or sent cannot be updated.
 func (c *Client) UpdateSingleSend(ctx context.Context, id string, p SingleSendParams, opts ...RequestOption) (*SingleSend, error) {
 	var out SingleSend
-	if err := c.patch(ctx, "/v3/marketing/singlesends/"+id, p, &out, opts...); err != nil {
+	if err := c.patch(ctx, "/v3/marketing/singlesends/"+esc(id), p, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -77,7 +77,7 @@ func (c *Client) UpdateSingleSend(ctx context.Context, id string, p SingleSendPa
 
 // DeleteSingleSend deletes a Single Send.
 func (c *Client) DeleteSingleSend(ctx context.Context, id string, opts ...RequestOption) error {
-	return c.delete(ctx, "/v3/marketing/singlesends/"+id, opts...)
+	return c.delete(ctx, "/v3/marketing/singlesends/"+esc(id), opts...)
 }
 
 // ScheduleSingleSend schedules a Single Send to be sent at sendAt, or
@@ -87,7 +87,7 @@ func (c *Client) ScheduleSingleSend(ctx context.Context, id, sendAt string, opts
 	var out struct {
 		Status string `json:"status"`
 	}
-	if err := c.put(ctx, "/v3/marketing/singlesends/"+id+"/schedule", body, &out, opts...); err != nil {
+	if err := c.put(ctx, "/v3/marketing/singlesends/"+esc(id)+"/schedule", body, &out, opts...); err != nil {
 		return "", err
 	}
 	return out.Status, nil
@@ -95,5 +95,5 @@ func (c *Client) ScheduleSingleSend(ctx context.Context, id, sendAt string, opts
 
 // UnscheduleSingleSend reverts a scheduled Single Send back to a draft.
 func (c *Client) UnscheduleSingleSend(ctx context.Context, id string, opts ...RequestOption) error {
-	return c.delete(ctx, "/v3/marketing/singlesends/"+id+"/schedule", opts...)
+	return c.delete(ctx, "/v3/marketing/singlesends/"+esc(id)+"/schedule", opts...)
 }

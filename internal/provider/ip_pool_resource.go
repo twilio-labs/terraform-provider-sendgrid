@@ -26,10 +26,13 @@ type ipPoolResource struct {
 	client *sg.Client
 }
 
+// IPs is a Set, not a List: SendGrid IP pool membership is unordered, and
+// modeling it as a List made a config that only reorders ips (no
+// additions/removals) never converge to a clean plan.
 type ipPoolResourceModel struct {
 	ID   types.String `tfsdk:"id"`
 	Name types.String `tfsdk:"name"`
-	IPs  types.List   `tfsdk:"ips"`
+	IPs  types.Set    `tfsdk:"ips"`
 }
 
 func (r *ipPoolResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -55,7 +58,7 @@ func (r *ipPoolResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					stringvalidator.LengthBetween(1, 64),
 				},
 			},
-			"ips": schema.ListAttribute{
+			"ips": schema.SetAttribute{
 				Optional:    true,
 				Computed:    true,
 				ElementType: types.StringType,
@@ -71,6 +74,32 @@ func (r *ipPoolResource) Configure(_ context.Context, req resource.ConfigureRequ
 	r.client = client
 }
 
+// diffIPPool computes which IPs must be added and removed to move an IP
+// pool's membership from current to want. Pure and order-independent, so
+// it's directly unit-testable without any Terraform Framework or HTTP
+// plumbing.
+func diffIPPool(current, want []string) (toAdd, toRemove []string) {
+	currentSet := make(map[string]bool, len(current))
+	for _, ip := range current {
+		currentSet[ip] = true
+	}
+	wantSet := make(map[string]bool, len(want))
+	for _, ip := range want {
+		wantSet[ip] = true
+	}
+	for _, ip := range current {
+		if !wantSet[ip] {
+			toRemove = append(toRemove, ip)
+		}
+	}
+	for _, ip := range want {
+		if !currentSet[ip] {
+			toAdd = append(toAdd, ip)
+		}
+	}
+	return toAdd, toRemove
+}
+
 func (r *ipPoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan ipPoolResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -78,7 +107,7 @@ func (r *ipPoolResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	wantIPs, diags := stringListToSlice(ctx, plan.IPs)
+	wantIPs, diags := stringSetToSlice(ctx, plan.IPs)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -93,7 +122,7 @@ func (r *ipPoolResource) Create(ctx context.Context, req resource.CreateRequest,
 	// The pool now exists remotely. Persist it before adding any IPs below,
 	// so a failure there doesn't leave Terraform unable to track it.
 	plan.ID = types.StringValue(pool.Name)
-	resp.Diagnostics.Append(setStringList(ctx, &plan.IPs, nil)...)
+	resp.Diagnostics.Append(setStringSet(ctx, &plan.IPs, nil)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -103,14 +132,14 @@ func (r *ipPoolResource) Create(ctx context.Context, req resource.CreateRequest,
 	for _, ip := range wantIPs {
 		if err := r.client.AddIPToPool(ctx, pool.Name, ip); err != nil {
 			resp.Diagnostics.AddError("Error adding IP to pool", err.Error())
-			resp.Diagnostics.Append(setStringList(ctx, &plan.IPs, added)...)
+			resp.Diagnostics.Append(setStringSet(ctx, &plan.IPs, added)...)
 			resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 			return
 		}
 		added = append(added, ip)
 	}
 
-	resp.Diagnostics.Append(setStringList(ctx, &plan.IPs, added)...)
+	resp.Diagnostics.Append(setStringSet(ctx, &plan.IPs, added)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -133,7 +162,7 @@ func (r *ipPoolResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	state.ID = types.StringValue(pool.Name)
 	state.Name = types.StringValue(pool.Name)
-	resp.Diagnostics.Append(setStringList(ctx, &state.IPs, pool.IPs)...)
+	resp.Diagnostics.Append(setStringSet(ctx, &state.IPs, pool.IPs)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -141,6 +170,18 @@ func (r *ipPoolResource) Update(ctx context.Context, req resource.UpdateRequest,
 	var plan, state ipPoolResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Capture the desired end-state from plan.IPs before anything below has
+	// a chance to overwrite plan.IPs for an unrelated checkpoint save — that
+	// exact reuse previously caused a rename-plus-IP-change apply to
+	// silently drop the IP change.
+	currentIPs, diags := stringSetToSlice(ctx, state.IPs)
+	resp.Diagnostics.Append(diags...)
+	wantIPs, diags := stringSetToSlice(ctx, plan.IPs)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -154,7 +195,7 @@ func (r *ipPoolResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 		poolName = pool.Name
 		plan.ID = types.StringValue(pool.Name)
-		plan.IPs = state.IPs
+		resp.Diagnostics.Append(setStringSet(ctx, &plan.IPs, currentIPs)...)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 		if resp.Diagnostics.HasError() {
 			return
@@ -163,55 +204,36 @@ func (r *ipPoolResource) Update(ctx context.Context, req resource.UpdateRequest,
 		plan.ID = state.ID
 	}
 
-	currentIPs, diags := stringListToSlice(ctx, state.IPs)
-	resp.Diagnostics.Append(diags...)
-	wantIPs, diags := stringListToSlice(ctx, plan.IPs)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	toAdd, toRemove := diffIPPool(currentIPs, wantIPs)
 
-	current := make(map[string]bool, len(currentIPs))
+	applied := make(map[string]bool, len(currentIPs))
 	for _, ip := range currentIPs {
-		current[ip] = true
+		applied[ip] = true
 	}
-	want := make(map[string]bool, len(wantIPs))
-	for _, ip := range wantIPs {
-		want[ip] = true
-	}
-
-	applied := append([]string{}, currentIPs...)
 	saveProgress := func() {
-		resp.Diagnostics.Append(setStringList(ctx, &plan.IPs, applied)...)
+		appliedSlice := make([]string, 0, len(applied))
+		for ip := range applied {
+			appliedSlice = append(appliedSlice, ip)
+		}
+		resp.Diagnostics.Append(setStringSet(ctx, &plan.IPs, appliedSlice)...)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	}
 
-	for _, ip := range currentIPs {
-		if want[ip] {
-			continue
-		}
+	for _, ip := range toRemove {
 		if err := r.client.RemoveIPFromPool(ctx, poolName, ip); err != nil {
 			resp.Diagnostics.AddError("Error removing IP from pool", err.Error())
 			saveProgress()
 			return
 		}
-		for i, a := range applied {
-			if a == ip {
-				applied = append(applied[:i], applied[i+1:]...)
-				break
-			}
-		}
+		delete(applied, ip)
 	}
-	for _, ip := range wantIPs {
-		if current[ip] {
-			continue
-		}
+	for _, ip := range toAdd {
 		if err := r.client.AddIPToPool(ctx, poolName, ip); err != nil {
 			resp.Diagnostics.AddError("Error adding IP to pool", err.Error())
 			saveProgress()
 			return
 		}
-		applied = append(applied, ip)
+		applied[ip] = true
 	}
 
 	saveProgress()

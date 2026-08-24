@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	sg "github.com/twilio-internal/terraform-provider-sendgrid/internal/sendgrid"
 )
@@ -17,6 +18,12 @@ func NewCustomFieldDataSource() datasource.DataSource {
 
 type customFieldDataSource struct {
 	client *sg.Client
+}
+
+type customFieldDataSourceModel struct {
+	ID        types.String `tfsdk:"id"`
+	Name      types.String `tfsdk:"name"`
+	FieldType types.String `tfsdk:"field_type"`
 }
 
 func (d *customFieldDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -41,7 +48,7 @@ func (d *customFieldDataSource) Configure(_ context.Context, req datasource.Conf
 }
 
 func (d *customFieldDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var config customFieldResourceModel
+	var config customFieldDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -57,6 +64,8 @@ func (d *customFieldDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	flattenCustomField(f, &config)
+	config.ID = types.StringValue(f.ID)
+	config.Name = types.StringValue(f.Name)
+	config.FieldType = types.StringValue(f.FieldType)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }
