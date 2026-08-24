@@ -2,9 +2,7 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -72,8 +70,10 @@ func (r *apiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"scopes": schema.SetAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
-				Description: "The permissions granted to this API key. Omitting this grants Full Access.",
+				Description: "The permissions granted to this API key. Omitting this grants Full Access; the " +
+					"granted scopes are then read back from the API into state.",
 			},
 			"api_key": schema.StringAttribute{
 				Computed:    true,
@@ -164,15 +164,30 @@ func (r *apiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	key, err := r.client.UpdateAPIKey(ctx, state.ID.ValueString(), plan.Name.ValueString(), scopes)
-	if err != nil {
-		resp.Diagnostics.AddError("Error updating API key", err.Error())
-		return
-	}
-
+	// PUT /v3/api_keys/{id} requires at least one scope; it has no "omit to
+	// grant Full Access" behavior like creation does. When the caller isn't
+	// specifying scopes, rename via PATCH instead so an omitted `scopes`
+	// doesn't get sent as an invalid empty/null array.
 	plan.ID = state.ID
 	plan.APIKey = state.APIKey
-	resp.Diagnostics.Append(setStringSet(ctx, &plan.Scopes, filterAutoInjectedScopes(key.Scopes, scopes))...)
+
+	if len(scopes) > 0 {
+		key, err := r.client.UpdateAPIKey(ctx, state.ID.ValueString(), plan.Name.ValueString(), scopes)
+		if err != nil {
+			resp.Diagnostics.AddError("Error updating API key", err.Error())
+			return
+		}
+		resp.Diagnostics.Append(setStringSet(ctx, &plan.Scopes, filterAutoInjectedScopes(key.Scopes, scopes))...)
+	} else {
+		// The rename-only endpoint doesn't return scopes; they weren't
+		// touched by this call, so carry the previously-observed value
+		// forward rather than deriving it from this response.
+		if _, err := r.client.UpdateAPIKeyName(ctx, state.ID.ValueString(), plan.Name.ValueString()); err != nil {
+			resp.Diagnostics.AddError("Error updating API key", err.Error())
+			return
+		}
+		plan.Scopes = state.Scopes
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -208,20 +223,4 @@ func filterAutoInjectedScopes(observed, desired []string) []string {
 		filtered = append(filtered, s)
 	}
 	return filtered
-}
-
-func clientFromProviderData(providerData any) (*sg.Client, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	if providerData == nil {
-		return nil, diags
-	}
-	client, ok := providerData.(*sg.Client)
-	if !ok {
-		diags.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *sendgrid.Client, got: %T. This is a bug in the provider.", providerData),
-		)
-		return nil, diags
-	}
-	return client, diags
 }

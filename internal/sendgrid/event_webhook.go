@@ -27,10 +27,16 @@ type EventWebhook struct {
 
 // EventWebhookParams are the mutable fields of an Event Webhook, used for
 // both create and update.
+//
+// FriendlyName, OAuthClientID, OAuthClientSecret, and OAuthTokenURL
+// deliberately lack `omitempty`: the SendGrid API's documented way to clear
+// a previously-set value on update is to send an explicit empty string, and
+// `omitempty` would drop the field from the request entirely instead,
+// leaving the old value in place server-side.
 type EventWebhookParams struct {
 	Enabled           bool   `json:"enabled"`
 	URL               string `json:"url"`
-	FriendlyName      string `json:"friendly_name,omitempty"`
+	FriendlyName      string `json:"friendly_name"`
 	GroupResubscribe  bool   `json:"group_resubscribe"`
 	Delivered         bool   `json:"delivered"`
 	GroupUnsubscribe  bool   `json:"group_unsubscribe"`
@@ -42,9 +48,9 @@ type EventWebhookParams struct {
 	Open              bool   `json:"open"`
 	Click             bool   `json:"click"`
 	Dropped           bool   `json:"dropped"`
-	OAuthClientID     string `json:"oauth_client_id,omitempty"`
-	OAuthClientSecret string `json:"oauth_client_secret,omitempty"`
-	OAuthTokenURL     string `json:"oauth_token_url,omitempty"`
+	OAuthClientID     string `json:"oauth_client_id"`
+	OAuthClientSecret string `json:"oauth_client_secret"`
+	OAuthTokenURL     string `json:"oauth_token_url"`
 }
 
 // CreateEventWebhook creates a new Event Webhook configuration.

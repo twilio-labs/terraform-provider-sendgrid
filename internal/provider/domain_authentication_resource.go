@@ -89,6 +89,7 @@ func (r *domainAuthenticationResource) Schema(_ context.Context, _ resource.Sche
 			},
 			"ips": schema.ListAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
 				Description: "IP addresses to include in this domain's custom SPF record. Only used when " +
 					"`custom_spf` is `true` and `automatic_security` is `false`.",
@@ -110,9 +111,10 @@ func (r *domainAuthenticationResource) Schema(_ context.Context, _ resource.Sche
 				Description: "Whether to use this as the fallback authenticated domain when no other authenticated domain matches a sender's domain.",
 			},
 			"automatic_security": schema.BoolAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "Whether SendGrid automatically manages this domain's SPF record and DKIM key rotation.",
+				Optional: true,
+				Computed: true,
+				Description: "Whether SendGrid automatically manages this domain's SPF record and DKIM key " +
+					"rotation. If omitted, SendGrid's own default is used and read back into state after creation.",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.RequiresReplace(),
 				},
@@ -167,17 +169,25 @@ func (r *domainAuthenticationResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	domain, err := r.client.CreateDomainAuthentication(ctx, sg.CreateDomainAuthenticationParams{
+	params := sg.CreateDomainAuthenticationParams{
 		Domain:             plan.Domain.ValueString(),
 		Subdomain:          plan.Subdomain.ValueString(),
 		Username:           plan.Username.ValueString(),
 		IPs:                ips,
 		CustomSPF:          plan.CustomSPF.ValueBool(),
 		Default:            plan.Default.ValueBool(),
-		AutomaticSecurity:  plan.AutomaticSecurity.ValueBool(),
 		CustomDKIMSelector: plan.CustomDKIMSelector.ValueString(),
 		Region:             plan.Region.ValueString(),
-	})
+	}
+	// automatic_security has no schema Default because SendGrid's own
+	// default isn't documented; only send it when the caller actually set
+	// it, so an omitted value doesn't get silently coerced to false.
+	if !plan.AutomaticSecurity.IsUnknown() {
+		v := plan.AutomaticSecurity.ValueBool()
+		params.AutomaticSecurity = &v
+	}
+
+	domain, err := r.client.CreateDomainAuthentication(ctx, params)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating domain authentication", err.Error())
 		return
@@ -260,18 +270,7 @@ func flattenDomainAuthentication(ctx context.Context, d *sg.DomainAuthentication
 
 	diags.Append(setStringList(ctx, &m.IPs, d.IPs)...)
 
-	records := map[string]string{
-		"mail_cname_type": d.DNS.MailCNAME.Type,
-		"mail_cname_host": d.DNS.MailCNAME.Host,
-		"mail_cname_data": d.DNS.MailCNAME.Data,
-		"dkim1_type":      d.DNS.DKIM1.Type,
-		"dkim1_host":      d.DNS.DKIM1.Host,
-		"dkim1_data":      d.DNS.DKIM1.Data,
-		"dkim2_type":      d.DNS.DKIM2.Type,
-		"dkim2_host":      d.DNS.DKIM2.Host,
-		"dkim2_data":      d.DNS.DKIM2.Data,
-	}
-	dnsMap, d2 := types.MapValueFrom(ctx, types.StringType, records)
+	dnsMap, d2 := domainAuthenticationDNSMap(ctx, d.DNS)
 	diags.Append(d2...)
 	m.DNSRecords = dnsMap
 

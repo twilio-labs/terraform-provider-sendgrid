@@ -5,13 +5,26 @@ import (
 	"fmt"
 )
 
-// Subuser represents a SendGrid subuser account.
+// Subuser represents a SendGrid subuser account. ID is the subuser's numeric
+// identifier regardless of which endpoint populated it — the create endpoint
+// returns it as "user_id" and the list endpoint returns it as "id"; callers
+// in this package normalize both into this one field so nothing downstream
+// has to know which endpoint a given Subuser value came from.
 type Subuser struct {
-	ID       int64  `json:"id,omitempty"`
-	UserID   int64  `json:"user_id,omitempty"`
+	ID       int64  `json:"-"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password,omitempty"`
+	Disabled bool   `json:"disabled"`
+	Region   string `json:"region,omitempty"`
+}
+
+// subuserListEntry matches the shape returned by GET /v3/subusers, where the
+// numeric identifier is named "id".
+type subuserListEntry struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 	Disabled bool   `json:"disabled"`
 	Region   string `json:"region,omitempty"`
 }
@@ -48,7 +61,7 @@ func (c *Client) CreateSubuser(ctx context.Context, username, email, password st
 		return nil, err
 	}
 	return &Subuser{
-		UserID:   out.UserID,
+		ID:       out.UserID,
 		Username: out.Username,
 		Email:    out.Email,
 		Region:   out.Region,
@@ -60,13 +73,19 @@ func (c *Client) CreateSubuser(ctx context.Context, username, email, password st
 // Returns nil, nil if no matching subuser exists.
 func (c *Client) GetSubuserByUsername(ctx context.Context, username string, opts ...RequestOption) (*Subuser, error) {
 	opts = append(opts, Query("username", username), Query("include_region", "true"), Query("region", "all"))
-	var out []Subuser
+	var out []subuserListEntry
 	if err := c.get(ctx, "/v3/subusers", &out, opts...); err != nil {
 		return nil, err
 	}
 	for _, s := range out {
 		if s.Username == username {
-			return &s, nil
+			return &Subuser{
+				ID:       s.ID,
+				Username: s.Username,
+				Email:    s.Email,
+				Disabled: s.Disabled,
+				Region:   s.Region,
+			}, nil
 		}
 	}
 	return nil, nil

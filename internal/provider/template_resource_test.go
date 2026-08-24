@@ -54,6 +54,68 @@ func templateVersionImportStateIDFunc(s *terraform.State) (string, error) {
 	return rs.Primary.Attributes["template_id"] + "/" + rs.Primary.Attributes["id"], nil
 }
 
+func TestParseTemplateVersionImportID(t *testing.T) {
+	tests := []struct {
+		name           string
+		id             string
+		wantTemplateID string
+		wantVersionID  string
+		wantErr        bool
+	}{
+		{
+			name:           "well-formed",
+			id:             "tmpl-123/ver-456",
+			wantTemplateID: "tmpl-123",
+			wantVersionID:  "ver-456",
+		},
+		{
+			name:    "missing separator",
+			id:      "tmpl-123",
+			wantErr: true,
+		},
+		{
+			name:    "empty string",
+			id:      "",
+			wantErr: true,
+		},
+		{
+			name:    "empty template_id segment",
+			id:      "/ver-456",
+			wantErr: true,
+		},
+		{
+			name:    "empty version_id segment",
+			id:      "tmpl-123/",
+			wantErr: true,
+		},
+		{
+			name:           "multiple slashes keep the rest in version_id",
+			id:             "tmpl-123/ver-456/extra",
+			wantTemplateID: "tmpl-123",
+			wantVersionID:  "ver-456/extra",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			templateID, versionID, err := parseTemplateVersionImportID(tt.id)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected an error, got templateID=%q versionID=%q", templateID, versionID)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if templateID != tt.wantTemplateID || versionID != tt.wantVersionID {
+				t.Errorf("parseTemplateVersionImportID(%q) = (%q, %q), want (%q, %q)",
+					tt.id, templateID, versionID, tt.wantTemplateID, tt.wantVersionID)
+			}
+		})
+	}
+}
+
 func TestAccTemplateVersionResource(t *testing.T) {
 	templateName := fmt.Sprintf("tf-acc-test-%d", testRandomSuffix())
 	versionName := "v1"

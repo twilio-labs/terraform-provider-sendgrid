@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -91,24 +92,19 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("sendgrid: request failed with status %d: %s", e.StatusCode, strings.Join(msgs, "; "))
 }
 
-// IsNotFound reports whether err represents a 404 response from the API.
+// IsNotFound reports whether err represents a 404 response from the API,
+// including when err wraps an *APIError via %w.
 func IsNotFound(err error) bool {
-	apiErr, ok := err.(*APIError)
-	return ok && apiErr.StatusCode == http.StatusNotFound
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
 }
 
 // requestOptions carries per-request overrides.
 type requestOptions struct {
-	onBehalfOf string
-	query      map[string]string
+	query map[string]string
 }
 
 type RequestOption func(*requestOptions)
-
-// OnBehalfOf overrides the client-level On-Behalf-Of header for a single request.
-func OnBehalfOf(username string) RequestOption {
-	return func(o *requestOptions) { o.onBehalfOf = username }
-}
 
 // Query adds a query string parameter to a single request.
 func Query(key, value string) RequestOption {
@@ -156,12 +152,8 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any, opt
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	onBehalfOf := c.onBehalfOf
-	if reqOpts.onBehalfOf != "" {
-		onBehalfOf = reqOpts.onBehalfOf
-	}
-	if onBehalfOf != "" {
-		req.Header.Set("On-Behalf-Of", onBehalfOf)
+	if c.onBehalfOf != "" {
+		req.Header.Set("On-Behalf-Of", c.onBehalfOf)
 	}
 
 	resp, err := c.httpClient.Do(req)

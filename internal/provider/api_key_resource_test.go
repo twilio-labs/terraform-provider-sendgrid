@@ -2,10 +2,66 @@ package provider
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
+
+func TestFilterAutoInjectedScopes(t *testing.T) {
+	tests := []struct {
+		name     string
+		observed []string
+		desired  []string
+		want     []string
+	}{
+		{
+			name:     "scope not in auto-injected map is always kept",
+			observed: []string{"mail.send", "alerts.read"},
+			desired:  []string{"mail.send", "alerts.read"},
+			want:     []string{"mail.send", "alerts.read"},
+		},
+		{
+			name:     "auto-injected scope absent from desired is dropped",
+			observed: []string{"mail.send", "2fa_required"},
+			desired:  []string{"mail.send"},
+			want:     []string{"mail.send"},
+		},
+		{
+			name:     "auto-injected scope explicitly requested is kept",
+			observed: []string{"mail.send", "2fa_required"},
+			desired:  []string{"mail.send", "2fa_required"},
+			want:     []string{"mail.send", "2fa_required"},
+		},
+		{
+			name:     "empty observed and desired",
+			observed: nil,
+			desired:  nil,
+			want:     []string{},
+		},
+		{
+			name: "all three known auto-injected scopes dropped together",
+			observed: []string{
+				"mail.send", "2fa_required", "sender_verification_eligible", "sender_verification_legacy",
+			},
+			desired: []string{"mail.send"},
+			want:    []string{"mail.send"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := filterAutoInjectedScopes(tt.observed, tt.desired)
+			sort.Strings(got)
+			want := append([]string{}, tt.want...)
+			sort.Strings(want)
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("filterAutoInjectedScopes(%v, %v) = %v, want %v", tt.observed, tt.desired, got, want)
+			}
+		})
+	}
+}
 
 func TestAccAPIKeyResource(t *testing.T) {
 	name := fmt.Sprintf("tf-acc-test-%d", testRandomSuffix())

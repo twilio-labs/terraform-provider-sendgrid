@@ -2,6 +2,7 @@ package sendgrid
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -42,19 +43,6 @@ func TestClientOnBehalfOfHeader(t *testing.T) {
 	}
 	if gotHeader != "subuser1" {
 		t.Errorf("On-Behalf-Of header = %q, want %q", gotHeader, "subuser1")
-	}
-
-	// Per-request override should take precedence over the client default.
-	var overrideHeader string
-	client2, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		overrideHeader = r.Header.Get("On-Behalf-Of")
-		w.WriteHeader(http.StatusOK)
-	})
-	if err := client2.get(context.Background(), "/v3/anything", nil, OnBehalfOf("subuser2")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if overrideHeader != "subuser2" {
-		t.Errorf("On-Behalf-Of header = %q, want %q", overrideHeader, "subuser2")
 	}
 }
 
@@ -114,6 +102,11 @@ func TestIsNotFound(t *testing.T) {
 	}
 	if IsNotFound(context.DeadlineExceeded) {
 		t.Error("IsNotFound on a non-APIError = true, want false")
+	}
+
+	wrapped := fmt.Errorf("while doing something: %w", err)
+	if !IsNotFound(wrapped) {
+		t.Error("IsNotFound on a wrapped *APIError = false, want true")
 	}
 }
 

@@ -60,8 +60,8 @@ func (p *SendgridProvider) Schema(_ context.Context, _ provider.SchemaRequest, r
 				Optional: true,
 				Description: "Sets the `on-behalf-of` header on every request, causing all requests to act " +
 					"as the given subuser or account (e.g. `account-id <account-id>`). Can also be set via the " +
-					"`SENDGRID_ON_BEHALF_OF` environment variable. Can be overridden per-resource with that " +
-					"resource's own `on_behalf_of` attribute, where supported.",
+					"`SENDGRID_ON_BEHALF_OF` environment variable. Applies to the whole provider; there is " +
+					"currently no per-resource override.",
 			},
 		},
 	}

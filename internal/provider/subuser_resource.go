@@ -124,6 +124,8 @@ func (r *subuserResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	wantDisabled := plan.Disabled.ValueBool()
+
 	sub, err := r.client.CreateSubuser(ctx, plan.Username.ValueString(), plan.Email.ValueString(),
 		plan.Password.ValueString(), ips, plan.Region.ValueString())
 	if err != nil {
@@ -131,23 +133,30 @@ func (r *subuserResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	if plan.Disabled.ValueBool() {
-		if err := r.client.UpdateSubuserDisabled(ctx, sub.Username, true); err != nil {
-			resp.Diagnostics.AddError("Error disabling subuser after creation", err.Error())
-			return
-		}
-	} else {
-		plan.Disabled = types.BoolValue(false)
-	}
-
-	plan.ID = types.StringValue(idFromInt64(sub.UserID))
+	// The subuser now exists remotely as of this point. Record what we know
+	// and persist it to state immediately, before attempting the optional
+	// disable call below — a failure there must not leave Terraform unable
+	// to track (and destroy) the subuser it just created.
+	plan.ID = types.StringValue(idFromInt64(sub.ID))
+	plan.Disabled = types.BoolValue(false)
 	if sub.Region != "" {
 		plan.Region = types.StringValue(sub.Region)
 	} else {
 		plan.Region = types.StringValue("global")
 	}
-
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if wantDisabled {
+		if err := r.client.UpdateSubuserDisabled(ctx, sub.Username, true); err != nil {
+			resp.Diagnostics.AddError("Error disabling subuser after creation", err.Error())
+			return
+		}
+		plan.Disabled = types.BoolValue(true)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	}
 }
 
 func (r *subuserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -188,29 +197,38 @@ func (r *subuserResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	// result tracks the last-known-good state. It's checkpointed to
+	// resp.State after each successful sub-update so that if a later step
+	// fails, Terraform records exactly what was actually applied rather than
+	// defaulting to the (partially unapplied) plan.
+	result := state
+
 	if plan.Disabled.ValueBool() != state.Disabled.ValueBool() {
 		if err := r.client.UpdateSubuserDisabled(ctx, state.Username.ValueString(), plan.Disabled.ValueBool()); err != nil {
 			resp.Diagnostics.AddError("Error updating subuser", err.Error())
+			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 			return
 		}
+		result.Disabled = plan.Disabled
+		resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 	}
 
 	if !plan.IPs.Equal(state.IPs) {
 		ips, diags := stringListToSlice(ctx, plan.IPs)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
+			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 			return
 		}
 		updated, err := r.client.UpdateSubuserIPs(ctx, state.Username.ValueString(), ips)
 		if err != nil {
 			resp.Diagnostics.AddError("Error updating subuser IPs", err.Error())
+			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 			return
 		}
-		resp.Diagnostics.Append(setStringList(ctx, &plan.IPs, updated)...)
+		resp.Diagnostics.Append(setStringList(ctx, &result.IPs, updated)...)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 	}
-
-	plan.ID = state.ID
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *subuserResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

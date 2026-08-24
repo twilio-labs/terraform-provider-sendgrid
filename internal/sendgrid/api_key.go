@@ -34,11 +34,26 @@ func (c *Client) GetAPIKey(ctx context.Context, id string, opts ...RequestOption
 	return &out, nil
 }
 
-// UpdateAPIKey updates an API key's name and scopes.
+// UpdateAPIKey updates an API key's name and scopes. SendGrid requires
+// scopes to contain at least one entry on this endpoint — unlike creation,
+// there is no "omit to grant Full Access" behavior here. Callers that want
+// to change only the name of a key without touching its scopes (e.g. a key
+// created with no explicit scopes, meaning Full Access) should use
+// UpdateAPIKeyName instead.
 func (c *Client) UpdateAPIKey(ctx context.Context, id, name string, scopes []string, opts ...RequestOption) (*APIKey, error) {
 	body := map[string]any{"name": name, "scopes": scopes}
 	var out APIKey
 	if err := c.put(ctx, "/v3/api_keys/"+id, body, &out, opts...); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateAPIKeyName renames an API key without modifying its scopes.
+func (c *Client) UpdateAPIKeyName(ctx context.Context, id, name string, opts ...RequestOption) (*APIKey, error) {
+	body := map[string]any{"name": name}
+	var out APIKey
+	if err := c.patch(ctx, "/v3/api_keys/"+id, body, &out, opts...); err != nil {
 		return nil, err
 	}
 	return &out, nil

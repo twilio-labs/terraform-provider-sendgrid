@@ -44,6 +44,10 @@ type DomainAuthentication struct {
 // CreateDomainAuthenticationParams are the fields accepted when creating a
 // new domain authentication. All fields are immutable after creation except
 // where noted on DomainAuthentication.
+//
+// AutomaticSecurity is a pointer so callers can omit it entirely (nil) and
+// let SendGrid apply its own default, rather than being forced to send an
+// explicit true/false that may not match what SendGrid would have chosen.
 type CreateDomainAuthenticationParams struct {
 	Domain             string   `json:"domain"`
 	Subdomain          string   `json:"subdomain,omitempty"`
@@ -51,7 +55,7 @@ type CreateDomainAuthenticationParams struct {
 	IPs                []string `json:"ips,omitempty"`
 	CustomSPF          bool     `json:"custom_spf"`
 	Default            bool     `json:"default"`
-	AutomaticSecurity  bool     `json:"automatic_security"`
+	AutomaticSecurity  *bool    `json:"automatic_security,omitempty"`
 	CustomDKIMSelector string   `json:"custom_dkim_selector,omitempty"`
 	Region             string   `json:"region,omitempty"`
 }

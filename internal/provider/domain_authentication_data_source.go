@@ -123,18 +123,7 @@ func (d *domainAuthenticationDataSource) Read(ctx context.Context, req datasourc
 
 	resp.Diagnostics.Append(setStringList(ctx, &config.IPs, domain.IPs)...)
 
-	records := map[string]string{
-		"mail_cname_type": domain.DNS.MailCNAME.Type,
-		"mail_cname_host": domain.DNS.MailCNAME.Host,
-		"mail_cname_data": domain.DNS.MailCNAME.Data,
-		"dkim1_type":      domain.DNS.DKIM1.Type,
-		"dkim1_host":      domain.DNS.DKIM1.Host,
-		"dkim1_data":      domain.DNS.DKIM1.Data,
-		"dkim2_type":      domain.DNS.DKIM2.Type,
-		"dkim2_host":      domain.DNS.DKIM2.Host,
-		"dkim2_data":      domain.DNS.DKIM2.Data,
-	}
-	dnsMap, diags := types.MapValueFrom(ctx, types.StringType, records)
+	dnsMap, diags := domainAuthenticationDNSMap(ctx, domain.DNS)
 	resp.Diagnostics.Append(diags...)
 	config.DNSRecords = dnsMap
 

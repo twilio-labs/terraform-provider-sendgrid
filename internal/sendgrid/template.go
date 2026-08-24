@@ -27,6 +27,13 @@ type TemplateVersion struct {
 	ThumbnailURL         string `json:"thumbnail_url,omitempty"`
 }
 
+// IsActive reports whether this version is SendGrid's active version for
+// its template, centralizing the nil-guarded 0/1-to-bool conversion so
+// callers don't each re-derive it (and risk skipping the nil check).
+func (v TemplateVersion) IsActive() bool {
+	return v.Active != nil && *v.Active == 1
+}
+
 // CreateTemplate creates a new transactional template. generation must be
 // "legacy" or "dynamic".
 func (c *Client) CreateTemplate(ctx context.Context, name, generation string, opts ...RequestOption) (*Template, error) {
@@ -97,14 +104,4 @@ func (c *Client) UpdateTemplateVersion(ctx context.Context, templateID, versionI
 // DeleteTemplateVersion deletes a template version.
 func (c *Client) DeleteTemplateVersion(ctx context.Context, templateID, versionID string, opts ...RequestOption) error {
 	return c.delete(ctx, "/v3/templates/"+templateID+"/versions/"+versionID, opts...)
-}
-
-// ActivateTemplateVersion marks a template version as the active one served
-// for that template.
-func (c *Client) ActivateTemplateVersion(ctx context.Context, templateID, versionID string, opts ...RequestOption) (*TemplateVersion, error) {
-	var out TemplateVersion
-	if err := c.post(ctx, "/v3/templates/"+templateID+"/versions/"+versionID+"/activate", nil, &out, opts...); err != nil {
-		return nil, err
-	}
-	return &out, nil
 }

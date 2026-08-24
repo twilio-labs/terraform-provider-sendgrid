@@ -2,10 +2,10 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -174,7 +174,7 @@ func (r *templateVersionResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	resp.Diagnostics.Append(flattenTemplateVersion(v, &plan)...)
+	flattenTemplateVersion(v, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -195,7 +195,7 @@ func (r *templateVersionResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	resp.Diagnostics.Append(flattenTemplateVersion(v, &state)...)
+	flattenTemplateVersion(v, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -215,7 +215,7 @@ func (r *templateVersionResource) Update(ctx context.Context, req resource.Updat
 
 	plan.ID = state.ID
 	plan.TemplateID = state.TemplateID
-	resp.Diagnostics.Append(flattenTemplateVersion(v, &plan)...)
+	flattenTemplateVersion(v, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -232,26 +232,33 @@ func (r *templateVersionResource) Delete(ctx context.Context, req resource.Delet
 }
 
 func (r *templateVersionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.SplitN(req.ID, "/", 2)
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError(
-			"Unexpected Import Identifier",
-			"Expected import identifier in the form template_id/version_id, got: "+req.ID,
-		)
+	templateID, versionID, err := parseTemplateVersionImportID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Unexpected Import Identifier", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("template_id"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("template_id"), templateID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), versionID)...)
 }
 
-func flattenTemplateVersion(v *sg.TemplateVersion, m *templateVersionResourceModel) diag.Diagnostics {
+// parseTemplateVersionImportID splits a "template_id/version_id" import
+// identifier. version_id is a UUID and so cannot itself contain "/", so a
+// simple two-part split (rather than requiring exactly one separator) is
+// sufficient and matches how SplitN(id, "/", 2) behaves on well-formed input.
+func parseTemplateVersionImportID(id string) (templateID, versionID string, err error) {
+	parts := strings.SplitN(id, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", fmt.Errorf("expected import identifier in the form template_id/version_id, got: %s", id)
+	}
+	return parts[0], parts[1], nil
+}
+
+func flattenTemplateVersion(v *sg.TemplateVersion, m *templateVersionResourceModel) {
 	m.ID = types.StringValue(v.ID)
 	if v.TemplateID != "" {
 		m.TemplateID = types.StringValue(v.TemplateID)
 	}
-	if v.Active != nil {
-		m.Active = types.BoolValue(*v.Active == 1)
-	}
+	m.Active = types.BoolValue(v.IsActive())
 	m.Name = types.StringValue(v.Name)
 	m.HTMLContent = types.StringValue(v.HTMLContent)
 	m.PlainContent = types.StringValue(v.PlainContent)
@@ -263,5 +270,4 @@ func flattenTemplateVersion(v *sg.TemplateVersion, m *templateVersionResourceMod
 		m.Editor = types.StringValue(v.Editor)
 	}
 	m.UpdatedAt = types.StringValue(v.UpdatedAt)
-	return nil
 }

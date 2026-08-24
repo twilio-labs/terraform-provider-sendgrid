@@ -156,13 +156,16 @@ func eventWebhookParamsFromModel(m eventWebhookResourceModel) sg.EventWebhookPar
 	}
 }
 
+// flattenEventWebhook copies every field directly from the API response.
+// Since EventWebhookParams always sends explicit values (no omitempty on
+// the string fields), an empty string in the response is a real, current
+// value — not an artifact of the field being merely absent — so it must
+// overwrite whatever was in state, rather than being preserved as stale.
 func flattenEventWebhook(w *sg.EventWebhook, m *eventWebhookResourceModel) {
 	m.ID = types.StringValue(w.ID)
 	m.Enabled = types.BoolValue(w.Enabled)
 	m.URL = types.StringValue(w.URL)
-	if w.FriendlyName != "" {
-		m.FriendlyName = types.StringValue(w.FriendlyName)
-	}
+	m.FriendlyName = types.StringValue(w.FriendlyName)
 	m.GroupResubscribe = types.BoolValue(w.GroupResubscribe)
 	m.Delivered = types.BoolValue(w.Delivered)
 	m.GroupUnsubscribe = types.BoolValue(w.GroupUnsubscribe)
@@ -174,12 +177,8 @@ func flattenEventWebhook(w *sg.EventWebhook, m *eventWebhookResourceModel) {
 	m.Open = types.BoolValue(w.Open)
 	m.Click = types.BoolValue(w.Click)
 	m.Dropped = types.BoolValue(w.Dropped)
-	if w.OAuthClientID != "" {
-		m.OAuthClientID = types.StringValue(w.OAuthClientID)
-	}
-	if w.OAuthTokenURL != "" {
-		m.OAuthTokenURL = types.StringValue(w.OAuthTokenURL)
-	}
+	m.OAuthClientID = types.StringValue(w.OAuthClientID)
+	m.OAuthTokenURL = types.StringValue(w.OAuthTokenURL)
 }
 
 func (r *eventWebhookResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -189,25 +188,34 @@ func (r *eventWebhookResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+	wantSigned := plan.Signed.ValueBool()
+
 	w, err := r.client.CreateEventWebhook(ctx, eventWebhookParamsFromModel(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating event webhook", err.Error())
 		return
 	}
+	// The webhook now exists remotely. Persist it before attempting the
+	// optional signing call below — a failure there must not leave
+	// Terraform unable to track (and destroy) the webhook it just created.
 	flattenEventWebhook(w, &plan)
+	plan.Signed = types.BoolValue(false)
+	plan.PublicKey = types.StringValue("")
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	if plan.Signed.ValueBool() {
+	if wantSigned {
 		publicKey, err := r.client.SetEventWebhookSigned(ctx, w.ID, true)
 		if err != nil {
 			resp.Diagnostics.AddError("Error enabling signature verification", err.Error())
 			return
 		}
+		plan.Signed = types.BoolValue(true)
 		plan.PublicKey = types.StringValue(publicKey)
-	} else {
-		plan.PublicKey = types.StringValue("")
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *eventWebhookResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -247,6 +255,8 @@ func (r *eventWebhookResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
+	wantSigned := plan.Signed.ValueBool()
+
 	w, err := r.client.UpdateEventWebhook(ctx, state.ID.ValueString(), eventWebhookParamsFromModel(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating event webhook", err.Error())
@@ -254,19 +264,27 @@ func (r *eventWebhookResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 	plan.ID = state.ID
 	flattenEventWebhook(w, &plan)
+	// The above fields are now confirmed-applied; checkpoint them before
+	// attempting the separate signing call below, so a failure there
+	// doesn't cause the plan's (unapplied) signed/public_key values to be
+	// committed to state alongside the fields that did apply.
+	plan.Signed = state.Signed
+	plan.PublicKey = state.PublicKey
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	if plan.Signed.ValueBool() != state.Signed.ValueBool() {
-		publicKey, err := r.client.SetEventWebhookSigned(ctx, state.ID.ValueString(), plan.Signed.ValueBool())
+	if wantSigned != state.Signed.ValueBool() {
+		publicKey, err := r.client.SetEventWebhookSigned(ctx, state.ID.ValueString(), wantSigned)
 		if err != nil {
 			resp.Diagnostics.AddError("Error updating signature verification", err.Error())
 			return
 		}
+		plan.Signed = types.BoolValue(wantSigned)
 		plan.PublicKey = types.StringValue(publicKey)
-	} else {
-		plan.PublicKey = state.PublicKey
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *eventWebhookResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

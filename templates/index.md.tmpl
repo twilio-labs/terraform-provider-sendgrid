@@ -1,0 +1,23 @@
+---
+page_title: "Provider: SendGrid"
+description: |-
+  The SendGrid provider is used to manage SendGrid (Twilio) resources.
+---
+
+# SendGrid Provider
+
+The SendGrid provider is used to manage [SendGrid](https://sendgrid.com) (a Twilio product) resources: API keys,
+sender authentication, subusers, transactional templates, and event webhooks. The provider needs to be
+configured with an API key before it can be used.
+
+## Getting Started
+
+See the [Authentication guide](guides/authentication.md) for how to configure credentials, including EU data
+residency and On-Behalf-Of subuser access. If you're migrating from another SendGrid Terraform provider, see the
+[Migration guide](guides/migrating-from-other-providers.md).
+
+## Example Usage
+
+{{ tffile "examples/provider/provider.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

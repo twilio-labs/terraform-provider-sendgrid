@@ -116,10 +116,9 @@ func (d *templateDataSource) Read(ctx context.Context, req datasource.ReadReques
 	config.UpdatedAt = types.StringValue(tmpl.UpdatedAt)
 	config.Versions = make([]templateVersionSummaryModel, 0, len(tmpl.Versions))
 	for _, v := range tmpl.Versions {
-		active := v.Active != nil && *v.Active == 1
 		config.Versions = append(config.Versions, templateVersionSummaryModel{
 			ID:        types.StringValue(v.ID),
-			Active:    types.BoolValue(active),
+			Active:    types.BoolValue(v.IsActive()),
 			Name:      types.StringValue(v.Name),
 			Subject:   types.StringValue(v.Subject),
 			UpdatedAt: types.StringValue(v.UpdatedAt),
