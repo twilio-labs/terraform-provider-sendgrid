@@ -111,6 +111,15 @@ func (p *SendgridProvider) Resources(_ context.Context) []func() resource.Resour
 		NewTemplateResource,
 		NewTemplateVersionResource,
 		NewEventWebhookResource,
+		NewListResource,
+		NewCustomFieldResource,
+		NewSegmentResource,
+		NewSingleSendResource,
+		NewClickTrackingSettingsResource,
+		NewOpenTrackingSettingsResource,
+		NewSubscriptionTrackingSettingsResource,
+		NewGoogleAnalyticsSettingsResource,
+		NewIPPoolResource,
 	}
 }
 
@@ -121,5 +130,10 @@ func (p *SendgridProvider) DataSources(_ context.Context) []func() datasource.Da
 		NewDomainAuthenticationDataSource,
 		NewTemplateDataSource,
 		NewEventWebhookDataSource,
+		NewListDataSource,
+		NewCustomFieldDataSource,
+		NewSegmentDataSource,
+		NewSingleSendDataSource,
+		NewIPPoolDataSource,
 	}
 }
