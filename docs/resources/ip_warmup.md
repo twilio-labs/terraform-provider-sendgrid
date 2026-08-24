@@ -4,11 +4,14 @@ page_title: "sendgrid_ip_warmup Resource - sendgrid"
 subcategory: "IP Management"
 description: |-
   Manages the warmup lifecycle of a dedicated IP address already on the account (via /v3/ips/warmup). Creating this resource starts warmup; destroying it stops warmup. The IP address itself must already exist (e.g. via sendgrid_ip_address) — this resource only manages its warmup state.
+  ~> SendGrid rejects starting warmup on an account's only dedicated IP — confirmed against a live account (400: "cannot enable warmup on an IP when all other IPs have warmup enabled"). At least one IP must remain out of warmup at all times, so this resource requires an account with 2+ dedicated IPs.
 ---
 
 # sendgrid_ip_warmup (Resource)
 
 Manages the warmup lifecycle of a dedicated IP address already on the account (via `/v3/ips/warmup`). Creating this resource starts warmup; destroying it stops warmup. The IP address itself must already exist (e.g. via `sendgrid_ip_address`) — this resource only manages its warmup state.
+
+~> SendGrid rejects starting warmup on an account's only dedicated IP — confirmed against a live account (400: "cannot enable warmup on an IP when all other IPs have warmup enabled"). At least one IP must remain out of warmup at all times, so this resource requires an account with 2+ dedicated IPs.
 
 ## Example Usage
 
