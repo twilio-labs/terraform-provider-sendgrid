@@ -23,7 +23,7 @@ func decodeBody(t *testing.T, r *http.Request) map[string]any {
 
 func TestCreateAPIKeyOmitsScopesWhenEmpty(t *testing.T) {
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotBody = decodeBody(t, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -40,7 +40,7 @@ func TestCreateAPIKeyOmitsScopesWhenEmpty(t *testing.T) {
 
 func TestCreateAPIKeyIncludesScopesWhenSet(t *testing.T) {
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotBody = decodeBody(t, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -58,7 +58,7 @@ func TestCreateAPIKeyIncludesScopesWhenSet(t *testing.T) {
 
 func TestUpdateAPIKeyRequiresScopes(t *testing.T) {
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotBody = decodeBody(t, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -76,7 +76,7 @@ func TestUpdateAPIKeyRequiresScopes(t *testing.T) {
 
 func TestUpdateAPIKeyNameOmitsScopes(t *testing.T) {
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotBody = decodeBody(t, r)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

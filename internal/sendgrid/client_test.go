@@ -8,16 +8,16 @@ import (
 	"testing"
 )
 
-func testServer(t *testing.T, handler http.HandlerFunc) (*Client, *httptest.Server) {
+func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	t.Helper()
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
-	return NewClient("test-api-key", WithHost(srv.URL)), srv
+	return NewClient("test-api-key", WithHost(srv.URL))
 }
 
 func TestClientAuthorizationHeader(t *testing.T) {
 	var gotAuth string
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
 		w.WriteHeader(http.StatusOK)
 	})
@@ -32,7 +32,7 @@ func TestClientAuthorizationHeader(t *testing.T) {
 
 func TestClientOnBehalfOfHeader(t *testing.T) {
 	var gotHeader string
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotHeader = r.Header.Get("On-Behalf-Of")
 		w.WriteHeader(http.StatusOK)
 	})
@@ -47,7 +47,7 @@ func TestClientOnBehalfOfHeader(t *testing.T) {
 }
 
 func TestClientDecodesSuccessResponse(t *testing.T) {
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"name":"hello"}`))
@@ -65,7 +65,7 @@ func TestClientDecodesSuccessResponse(t *testing.T) {
 }
 
 func TestClientReturnsAPIErrorOnNon2xx(t *testing.T) {
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(`{"errors":[{"message":"bad request","field":"name"}]}`))
 	})
@@ -87,7 +87,7 @@ func TestClientReturnsAPIErrorOnNon2xx(t *testing.T) {
 }
 
 func TestIsNotFound(t *testing.T) {
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte(`{"errors":[{"message":"not found"}]}`))
 	})
@@ -112,7 +112,7 @@ func TestIsNotFound(t *testing.T) {
 
 func TestClientQueryParameters(t *testing.T) {
 	var gotQuery string
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotQuery = r.URL.RawQuery
 		w.WriteHeader(http.StatusOK)
 	})
@@ -128,7 +128,7 @@ func TestClientQueryParameters(t *testing.T) {
 
 func TestClientSendsJSONBodyOnlyWhenPresent(t *testing.T) {
 	var gotContentType string
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotContentType = r.Header.Get("Content-Type")
 		w.WriteHeader(http.StatusNoContent)
 	})

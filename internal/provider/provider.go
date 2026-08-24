@@ -97,7 +97,11 @@ func (p *SendgridProvider) Configure(ctx context.Context, req provider.Configure
 		onBehalfOf = os.Getenv("SENDGRID_ON_BEHALF_OF")
 	}
 
-	client := sg.NewClient(apiKey, sg.WithHost(host), sg.WithOnBehalfOf(onBehalfOf))
+	client := sg.NewClient(apiKey,
+		sg.WithHost(host),
+		sg.WithOnBehalfOf(onBehalfOf),
+		sg.WithUserAgent("terraform-provider-sendgrid/"+p.version),
+	)
 
 	resp.ResourceData = client
 	resp.DataSourceData = client

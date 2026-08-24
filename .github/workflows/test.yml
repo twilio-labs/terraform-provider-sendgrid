@@ -1,0 +1,108 @@
+# Terraform Provider testing workflow.
+name: Tests
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'README.md'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+
+# Testing only needs permissions to read the repository contents.
+permissions:
+  contents: read
+
+jobs:
+  # Ensure project builds, vets, and lints cleanly before running the test matrix.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - run: go mod download
+      - run: go build -v .
+      - run: go vet ./...
+      - name: Run linters
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  # Unit tests never touch the network and need no credentials.
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - run: go mod download
+      - run: go test -v -cover ./...
+
+  # Regenerate docs and fail if that produces an uncommitted diff, so
+  # generated docs can never silently drift from the schema.
+  generate:
+    name: Generate Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - run: go generate ./...
+      - name: git diff
+        run: |
+          git diff --compact-summary --exit-code || \
+            (echo; echo "Unexpected difference in directories after code generation. Run 'go generate ./...' and commit the result."; exit 1)
+
+  # Acceptance tests make real calls against a live SendGrid account and
+  # need repository secrets, which forked-PR and Dependabot-triggered runs
+  # don't receive (SENDGRID_API_KEY resolves empty and every call fails
+  # with "authorization required"). Run only on pushes to main, where
+  # secrets are available, so this workflow still finishes successfully
+  # for ordinary PRs without silently skipping real coverage forever.
+  acceptance-test:
+    name: Acceptance Tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        terraform:
+          - '1.9.*'
+          - '1.11.*'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ matrix.terraform }}
+          terraform_wrapper: false
+      - run: go mod download
+      - env:
+          TF_ACC: '1'
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        run: go test -v -cover ./internal/provider/...
+        timeout-minutes: 20

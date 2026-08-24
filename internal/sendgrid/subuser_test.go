@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetSubuserByUsernameExactMatch(t *testing.T) {
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		// Includes a username that is a prefix of the target, to verify the
@@ -32,7 +32,7 @@ func TestGetSubuserByUsernameExactMatch(t *testing.T) {
 }
 
 func TestGetSubuserByUsernameNotFound(t *testing.T) {
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`[]`))

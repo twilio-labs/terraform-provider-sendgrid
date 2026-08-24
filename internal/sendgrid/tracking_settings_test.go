@@ -9,7 +9,7 @@ import (
 func TestUpdateClickTrackingSettings(t *testing.T) {
 	var gotMethod, gotPath string
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
 		gotPath = r.URL.Path
 		gotBody = decodeBody(t, r)
@@ -36,7 +36,7 @@ func TestUpdateClickTrackingSettings(t *testing.T) {
 func TestUpdateOpenTrackingSettings(t *testing.T) {
 	var gotMethod, gotPath string
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
 		gotPath = r.URL.Path
 		gotBody = decodeBody(t, r)
@@ -63,7 +63,7 @@ func TestUpdateOpenTrackingSettings(t *testing.T) {
 func TestUpdateSubscriptionTrackingSettings(t *testing.T) {
 	var gotPath string
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
 		gotBody = decodeBody(t, r)
 		w.Header().Set("Content-Type", "application/json")
@@ -92,7 +92,7 @@ func TestUpdateSubscriptionTrackingSettings(t *testing.T) {
 func TestUpdateGoogleAnalyticsSettings(t *testing.T) {
 	var gotPath string
 	var gotBody map[string]any
-	client, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
 		gotBody = decodeBody(t, r)
 		w.Header().Set("Content-Type", "application/json")
