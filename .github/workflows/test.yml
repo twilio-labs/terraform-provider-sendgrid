@@ -1,5 +1,25 @@
 # Terraform Provider testing workflow.
 #
+# DISABLED (workflow_dispatch only) while this repo is private under
+# github.com/twilio-internal: this org's self-hosted GHA runners
+# (twilio-internal-ubuntu-latest-slim) have NO egress to package registries,
+# so every step below that fetches a dependency (go install, go mod
+# download, curl to releases.hashicorp.com) hangs until timeout rather than
+# failing cleanly. Build/test/lint/docs-gen now run on Buildkite instead —
+# see .buildkite/pipeline.yml.
+#
+# REVERT TO THIS WORKFLOW when the repo moves to a public org (github.com/
+# twilio or github.com/twilio-labs, via Twilio's IP-team + #help-oss
+# process): change `on:` back to pull_request/push below, and change
+# `runs-on: twilio-internal-ubuntu-latest-slim` (in each job) to `runs-on:
+# ubuntu-latest-large` (or `windows-latest-large` for Windows jobs) — the
+# GitHub-hosted public-repo runner labels. Public-repo SDK build/test/
+# publish is policy-mandated onto GitHub-hosted runners (not self-hosted),
+# because a fork PR can otherwise run attacker-controlled code against
+# self-hosted infrastructure. Once reverted, this file's `go install`/`curl`
+# steps should work as-is — those runners have real internet access — so
+# .buildkite/pipeline.yml can be retired at that point.
+#
 # Every `uses:` here is either created by GitHub (actions/*) or absent —
 # golangci-lint, Terraform, and GoReleaser are all installed via plain shell
 # commands (go install / a direct release download) instead of third-party
@@ -10,14 +30,7 @@
 name: Tests
 
 on:
-  pull_request:
-    paths-ignore:
-      - 'README.md'
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - 'README.md'
+  workflow_dispatch: {}
 
 # Testing only needs permissions to read the repository contents.
 permissions:
@@ -30,7 +43,7 @@ jobs:
   # Ensure project builds, vets, and lints cleanly before running the test matrix.
   build:
     name: Build
-    runs-on: tw-ubuntu-latest-slim
+    runs-on: twilio-internal-ubuntu-latest-slim
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,7 +62,7 @@ jobs:
   # Unit tests never touch the network and need no credentials.
   unit-test:
     name: Unit Tests
-    runs-on: tw-ubuntu-latest-slim
+    runs-on: twilio-internal-ubuntu-latest-slim
     timeout-minutes: 10
     needs: build
     steps:
@@ -65,7 +78,7 @@ jobs:
   # generated docs can never silently drift from the schema.
   generate:
     name: Generate Docs
-    runs-on: tw-ubuntu-latest-slim
+    runs-on: twilio-internal-ubuntu-latest-slim
     timeout-minutes: 10
     env:
       TERRAFORM_VERSION: '1.15.9'
@@ -98,7 +111,7 @@ jobs:
     name: Acceptance Tests
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
-    runs-on: tw-ubuntu-latest-slim
+    runs-on: twilio-internal-ubuntu-latest-slim
     timeout-minutes: 30
     strategy:
       max-parallel: 1

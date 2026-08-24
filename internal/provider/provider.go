@@ -124,6 +124,16 @@ func (p *SendgridProvider) Resources(_ context.Context) []func() resource.Resour
 		NewSubscriptionTrackingSettingsResource,
 		NewGoogleAnalyticsSettingsResource,
 		NewIPPoolResource,
+		NewTeammateResource,
+		NewAddressWhitelistMailSettingsResource,
+		NewBouncePurgeMailSettingsResource,
+		NewFooterMailSettingsResource,
+		NewForwardBounceMailSettingsResource,
+		NewForwardSpamMailSettingsResource,
+		NewTemplateMailSettingsResource,
+		NewIPAddressResource,
+		NewIPWarmupResource,
+		NewPartnerAccountResource,
 	}
 }
 
@@ -139,5 +149,8 @@ func (p *SendgridProvider) DataSources(_ context.Context) []func() datasource.Da
 		NewSegmentDataSource,
 		NewSingleSendDataSource,
 		NewIPPoolDataSource,
+		NewTeammateDataSource,
+		NewIPAddressDataSource,
+		NewPartnerOfferingsDataSource,
 	}
 }

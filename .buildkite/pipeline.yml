@@ -1,0 +1,135 @@
+# Buildkite pipeline for terraform-provider-sendgrid.
+#
+# This repo is currently private under github.com/twilio-internal, where
+# GitHub Actions self-hosted runners (tw-ubuntu-latest-slim /
+# twilio-internal-ubuntu-latest-slim) have no egress to package registries —
+# `go install`, `go mod download`, and any other dependency fetch just hangs.
+# Buildkite's locked-down agents solve this via Artifactory pull-through
+# mirrors (GOPROXY, the generic web mirror, etc.), which is why build/test/
+# lint/release live here instead of in .github/workflows/*.yml for now.
+#
+# IMPORTANT — when this repo moves to a public org (github.com/twilio or
+# github.com/twilio-labs, per Twilio's OSS process), MOVE BACK to GitHub
+# Actions: see the header comments in .github/workflows/test.yml and
+# release.yml. Public-repo SDK build/test/publish is policy-mandated onto
+# GitHub-hosted runners (ubuntu-latest-large / windows-latest-large) because
+# a fork PR can run attacker-controlled code against a self-hosted runner —
+# that's a hard security requirement, not a preference. This Buildkite
+# pipeline should be retired at that point (Buildkite's Twilio integration is
+# scoped to twilio-internal/code.hq/sendgrid/segmentio, not public orgs).
+#
+# One-time manual setup this file does NOT cover (see PR/commit description
+# for the full checklist):
+#   - Registering this repo as a Backstage component to get a Domain and a
+#     `buildkite-queue#` tag (agents.queue is set in the Buildkite UI, not
+#     here — see https://backstage.twilioinfra.com/catalog?filters%5Bkind%5D=domain)
+#   - Creating the pipeline itself in https://buildkite.com/twilio (ServiceNow
+#     access request + UI steps)
+#   - Provisioning GPG_PRIVATE_KEY / PASSPHRASE / GITHUB_TOKEN as secrets,
+#     ideally via an AWS account + assume-role rather than plain env vars
+
+steps:
+  - label: ':golang: Build & Vet'
+    key: build
+    commands:
+      - go build -v .
+      - go vet ./...
+    plugins:
+      - docker#v5.13.0:
+          image: 'registry.twilio.com/library/golang/1.26:latest'
+          always-pull: true
+
+  - label: ':golangci-lint: Lint'
+    key: lint
+    depends_on: build
+    commands:
+      - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
+      - golangci-lint run
+    plugins:
+      - docker#v5.13.0:
+          image: 'registry.twilio.com/library/golang/1.26:latest'
+          always-pull: true
+
+  - label: ':test_tube: Unit Tests'
+    key: test
+    depends_on: build
+    commands:
+      - go test -v -cover ./...
+    plugins:
+      - docker#v5.13.0:
+          image: 'registry.twilio.com/library/golang/1.26:latest'
+          always-pull: true
+
+  - label: ':books: Generate Docs'
+    key: docs
+    depends_on: build
+    env:
+      TERRAFORM_VERSION: '1.15.9'
+    commands:
+      - |
+        curl -fsSL \
+          "https://generic.artifacts.twilio.com/artifactory/web-releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" \
+          -o terraform.zip
+        unzip -o terraform.zip -d /usr/local/bin
+        terraform version
+      - go generate ./...
+      - |
+        git diff --compact-summary --exit-code -- docs/ || \
+          (echo "docs/ is out of sync — 'go generate ./...' produced changes; run 'make docs' and commit the result." && exit 1)
+    plugins:
+      - docker#v5.13.0:
+          image: 'registry.twilio.com/library/golang/1.26:latest'
+          always-pull: true
+
+  # Acceptance tests make real calls against a live SendGrid account and need
+  # SENDGRID_API_KEY. Restrict to main so untrusted branches/PRs can't spend
+  # a real account's quota; see test comment in .github/workflows/test.yml
+  # for the same reasoning applied there.
+  - label: ':test_tube: Acceptance Tests'
+    key: acceptance-test
+    depends_on: build
+    if: build.branch == "main"
+    env:
+      TF_ACC: '1'
+      TERRAFORM_VERSION: '1.15.9'
+    commands:
+      - |
+        curl -fsSL \
+          "https://generic.artifacts.twilio.com/artifactory/web-releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip" \
+          -o terraform.zip
+        unzip -o terraform.zip -d /usr/local/bin
+      - go test -v -cover ./internal/provider/... -timeout 30m
+    plugins:
+      - docker#v5.13.0:
+          image: 'registry.twilio.com/library/golang/1.26:latest'
+          always-pull: true
+
+  # Releases are tag-triggered (matching what release.yml did on GHA), not
+  # the manual RELEASE_VERSION-env-var flow Buildkite uses by default —
+  # GoReleaser derives its own version from the pushed git tag.
+  - label: ':goreleaser: Release'
+    key: release
+    if: build.tag != null
+    env:
+      GORELEASER_VERSION: 'v2.17.0' # verify against the Artifactory Go proxy before bumping — v2.18.0 404s there as of writing
+    commands:
+      - |
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+        echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+        gpgconf --kill gpg-agent
+        FINGERPRINT=$(gpg --list-secret-keys --keyid-format=long | awk '/^sec/{print $2}' | cut -d'/' -f2 | head -n1)
+        echo "GPG_FINGERPRINT=${FINGERPRINT}" >> gpg_fingerprint.env
+        echo "test" | gpg --batch --pinentry-mode loopback --passphrase "$PASSPHRASE" \
+          --local-user "${FINGERPRINT}" --detach-sign --armor --output /dev/null -
+      - go install "github.com/goreleaser/goreleaser/v2@${GORELEASER_VERSION}"
+      - |
+        export GPG_FINGERPRINT=$(cut -d= -f2 gpg_fingerprint.env)
+        goreleaser release --clean
+    plugins:
+      - docker#v5.13.0:
+          image: 'registry.twilio.com/library/golang/1.26:latest'
+          always-pull: true
+          environment:
+            - 'GPG_PRIVATE_KEY'
+            - 'PASSPHRASE'
+            - 'GITHUB_TOKEN'
