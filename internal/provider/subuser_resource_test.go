@@ -44,10 +44,25 @@ resource "sendgrid_subuser" "test" {
 				Check: resource.TestCheckResourceAttr("sendgrid_subuser.test", "disabled", "true"),
 			},
 			{
+				Config: fmt.Sprintf(`
+resource "sendgrid_subuser" "test" {
+  username = %[1]q
+  email    = %[2]q
+  password = "correct-horse-battery-staple-1!"
+  ips      = ["127.0.0.1", "127.0.0.2"]
+  disabled = true
+}
+`, username, email),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("sendgrid_subuser.test", "ips.#", "2"),
+					resource.TestCheckResourceAttr("sendgrid_subuser.test", "ips.1", "127.0.0.2"),
+				),
+			},
+			{
 				ResourceName:            "sendgrid_subuser.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ImportStateVerifyIgnore: []string{"password", "ips"},
 			},
 		},
 	})

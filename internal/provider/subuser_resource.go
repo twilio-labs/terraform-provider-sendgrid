@@ -45,9 +45,12 @@ func (r *subuserResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		Description: "Manages a SendGrid subuser: an isolated sub-account with its own sending reputation, " +
 			"templates, and API keys, typically used to separate sending on behalf of different products or " +
 			"customers under one parent account.\n\n" +
-			"~> SendGrid's API does not support changing a subuser's `username`, `email`, `password`, `ips`, " +
-			"or `region` after creation; changing any of these forces recreation. Only `disabled` can be " +
-			"updated in place.",
+			"~> SendGrid's API does not support changing a subuser's `username`, `email`, `password`, or " +
+			"`region` after creation; changing any of these forces recreation. `ips` and `disabled` can be " +
+			"updated in place.\n\n" +
+			"~> SendGrid has no endpoint that returns a subuser's currently assigned IPs, so `ips` cannot be " +
+			"refreshed by `terraform plan` and is not populated by `terraform import`; on import, the first " +
+			"plan will show a change to `ips` and apply it via the update-IPs endpoint.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
@@ -81,7 +84,8 @@ func (r *subuserResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"ips": schema.ListAttribute{
 				Required:    true,
 				ElementType: types.StringType,
-				Description: "The IP addresses assigned to this subuser. Cannot be changed after creation via this resource.",
+				Description: "The IP addresses assigned to this subuser. At least one is required at creation " +
+					"time; can be updated in place afterward.",
 			},
 			"region": schema.StringAttribute{
 				Optional:    true,
@@ -169,6 +173,9 @@ func (r *subuserResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if sub.Region != "" {
 		state.Region = types.StringValue(sub.Region)
 	}
+	// state.IPs is intentionally left untouched: SendGrid has no endpoint
+	// that returns a subuser's currently assigned IPs, so the value already
+	// in state is authoritative.
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -186,6 +193,20 @@ func (r *subuserResource) Update(ctx context.Context, req resource.UpdateRequest
 			resp.Diagnostics.AddError("Error updating subuser", err.Error())
 			return
 		}
+	}
+
+	if !plan.IPs.Equal(state.IPs) {
+		ips, diags := stringListToSlice(ctx, plan.IPs)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		updated, err := r.client.UpdateSubuserIPs(ctx, state.Username.ValueString(), ips)
+		if err != nil {
+			resp.Diagnostics.AddError("Error updating subuser IPs", err.Error())
+			return
+		}
+		resp.Diagnostics.Append(setStringList(ctx, &plan.IPs, updated)...)
 	}
 
 	plan.ID = state.ID

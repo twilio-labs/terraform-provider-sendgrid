@@ -72,6 +72,17 @@ func (c *Client) GetSubuserByUsername(ctx context.Context, username string, opts
 	return nil, nil
 }
 
+// UpdateSubuserIPs replaces the IP addresses assigned to a subuser.
+func (c *Client) UpdateSubuserIPs(ctx context.Context, username string, ips []string, opts ...RequestOption) ([]string, error) {
+	var out struct {
+		IPs []string `json:"ips"`
+	}
+	if err := c.put(ctx, "/v3/subusers/"+username+"/ips", ips, &out, opts...); err != nil {
+		return nil, err
+	}
+	return out.IPs, nil
+}
+
 // UpdateSubuserDisabled enables or disables a subuser.
 func (c *Client) UpdateSubuserDisabled(ctx context.Context, username string, disabled bool, opts ...RequestOption) error {
 	body := map[string]any{"disabled": disabled}
