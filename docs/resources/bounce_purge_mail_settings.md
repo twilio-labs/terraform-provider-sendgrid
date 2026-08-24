@@ -4,11 +4,14 @@ page_title: "sendgrid_bounce_purge_mail_settings Resource - sendgrid"
 subcategory: "Tracking & Mail Settings"
 description: |-
   Manages the account-wide bounce purge mail setting, which controls automatic purging of contacts from bounce suppression lists after a number of days. This is a singleton: SendGrid has exactly one bounce purge configuration per account (or per subuser, via the provider's on_behalf_of); creating this resource updates that configuration in place, and destroying it only removes it from Terraform state without resetting SendGrid's setting.
+  ~> SendGrid rejects enabled = false unless soft_bounces and hard_bounces are both left unset — confirmed against a live account (400: "cannot be disabled unless both hard_bounces and soft_bounces are empty"). Set both or neither.
 ---
 
 # sendgrid_bounce_purge_mail_settings (Resource)
 
 Manages the account-wide bounce purge mail setting, which controls automatic purging of contacts from bounce suppression lists after a number of days. This is a singleton: SendGrid has exactly one bounce purge configuration per account (or per subuser, via the provider's `on_behalf_of`); creating this resource updates that configuration in place, and destroying it only removes it from Terraform state without resetting SendGrid's setting.
+
+~> SendGrid rejects `enabled = false` unless `soft_bounces` and `hard_bounces` are both left unset — confirmed against a live account (400: "cannot be disabled unless both hard_bounces and soft_bounces are empty"). Set both or neither.
 
 ## Example Usage
 

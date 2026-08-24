@@ -23,13 +23,19 @@ func (c *Client) CreateIPPool(ctx context.Context, name string, opts ...RequestO
 // assigned to it.
 func (c *Client) GetIPPool(ctx context.Context, name string, opts ...RequestOption) (*IPPool, error) {
 	var out struct {
-		PoolName string   `json:"pool_name"`
-		IPs      []string `json:"ips"`
+		PoolName string `json:"pool_name"`
+		IPs      []struct {
+			IP string `json:"ip"`
+		} `json:"ips"`
 	}
 	if err := c.get(ctx, "/v3/ips/pools/"+esc(name), &out, opts...); err != nil {
 		return nil, err
 	}
-	return &IPPool{Name: out.PoolName, IPs: out.IPs}, nil
+	ips := make([]string, len(out.IPs))
+	for i, entry := range out.IPs {
+		ips[i] = entry.IP
+	}
+	return &IPPool{Name: out.PoolName, IPs: ips}, nil
 }
 
 // UpdateIPPool renames an IP pool.
