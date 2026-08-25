@@ -86,6 +86,26 @@ func TestClientReturnsAPIErrorOnNon2xx(t *testing.T) {
 	}
 }
 
+// TestClientSurfacesSingleErrorShape locks in a real API response shape:
+// the segments rate-limit response uses a top-level "error" string instead
+// of the usual "errors" array — confirmed against a live account. A prior
+// version of APIError only decoded the array shape, silently dropping this
+// message down to a bare, unhelpful "request failed with status 403".
+func TestClientSurfacesSingleErrorShape(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"error":"Update request came too soon, please wait 5 minutes before trying again"}`))
+	})
+
+	err := client.get(context.Background(), "/v3/anything", nil)
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+	if want := "sendgrid: request failed with status 403: Update request came too soon, please wait 5 minutes before trying again"; err.Error() != want {
+		t.Errorf("Error() = %q, want %q", err.Error(), want)
+	}
+}
+
 func TestIsNotFound(t *testing.T) {
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
