@@ -117,7 +117,11 @@ func NewClient(apiKey string, opts ...Option) *Client {
 	return c
 }
 
-// APIError represents an error response from the SendGrid API.
+// APIError represents an error response from the SendGrid API. Most
+// endpoints use the "errors" array shape, but some (e.g. the segments rate
+// limit response) instead return a single top-level "error" string —
+// confirmed against a live account. Decode both so neither shape is
+// silently dropped down to a bare, unhelpful status-code-only message.
 type APIError struct {
 	StatusCode int
 	Errors     []struct {
@@ -125,10 +129,14 @@ type APIError struct {
 		Field   string `json:"field"`
 		Help    string `json:"help"`
 	} `json:"errors"`
+	SingleError string `json:"error"`
 }
 
 func (e *APIError) Error() string {
 	if len(e.Errors) == 0 {
+		if e.SingleError != "" {
+			return fmt.Sprintf("sendgrid: request failed with status %d: %s", e.StatusCode, e.SingleError)
+		}
 		return fmt.Sprintf("sendgrid: request failed with status %d", e.StatusCode)
 	}
 	msgs := make([]string, 0, len(e.Errors))

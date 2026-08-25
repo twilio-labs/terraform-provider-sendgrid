@@ -62,8 +62,13 @@ func (r *segmentResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"query_dsl": schema.StringAttribute{
-				Required:    true,
-				Description: "The SQL-like query used to filter contacts into this segment.",
+				Required: true,
+				Description: "The SQL query used to filter contacts into this segment. Confirmed against a " +
+					"live account: this must be a full `SELECT ... FROM contact_data WHERE ...` statement, not " +
+					"just a boolean condition — e.g. `SELECT contact_id, updated_at FROM contact_data WHERE " +
+					"email LIKE '%@example.com'`. The SELECT clause must select exactly `contact_id` and " +
+					"`updated_at` (SendGrid rejects `SELECT *` and rejects omitting `updated_at`) when querying " +
+					"the `contact_data` table.",
 			},
 			"parent_list_ids": schema.ListAttribute{
 				Optional:    true,

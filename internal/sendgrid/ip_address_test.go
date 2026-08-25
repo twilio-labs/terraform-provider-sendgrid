@@ -151,7 +151,10 @@ func TestListIPAddressSubusers(t *testing.T) {
 		gotPath = r.URL.Path
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"subusers":["1","2"]}`))
+		// The real endpoint wraps the list in "result", not "subusers" —
+		// confirmed against a live account. A prior version of this client
+		// decoded the wrong key and silently always returned an empty list.
+		_, _ = w.Write([]byte(`{"result":["1","2"],"_metadata":{"next_params":{"after_key":null}}}`))
 	})
 
 	subs, err := client.ListIPAddressSubusers(context.Background(), "1.2.3.4")

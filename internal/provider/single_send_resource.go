@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -276,6 +277,20 @@ func singleSendParamsFromModel(ctx context.Context, m singleSendResourceModel) (
 	return p, diags
 }
 
+// sgOpenTrackPlaceholder is SendGrid's open-tracking placeholder tag. If a
+// Single Send's html_content doesn't already contain it, SendGrid silently
+// prepends it server-side — confirmed against a live account. Left as-is,
+// this crashes every apply with "Provider produced inconsistent result"
+// (Terraform sees the plan's literal html_content diverge from what Create
+// returns). Since a user placing this exact token at the very start of
+// their content on purpose is vanishingly unlikely compared to SendGrid
+// having added it, strip it unconditionally when present as a prefix.
+const sgOpenTrackPlaceholder = "%sg_open_track%"
+
+func stripInjectedOpenTrackPlaceholder(htmlContent string) string {
+	return strings.TrimPrefix(htmlContent, sgOpenTrackPlaceholder)
+}
+
 func flattenSingleSend(ctx context.Context, s *sg.SingleSend, m *singleSendResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -295,7 +310,7 @@ func flattenSingleSend(ctx context.Context, s *sg.SingleSend, m *singleSendResou
 		m.EmailConfig = &singleSendEmailConfigModel{}
 	}
 	m.EmailConfig.Subject = types.StringValue(s.EmailConfig.Subject)
-	m.EmailConfig.HTMLContent = types.StringValue(s.EmailConfig.HTMLContent)
+	m.EmailConfig.HTMLContent = types.StringValue(stripInjectedOpenTrackPlaceholder(s.EmailConfig.HTMLContent))
 	m.EmailConfig.PlainContent = types.StringValue(s.EmailConfig.PlainContent)
 	m.EmailConfig.GeneratePlainContent = types.BoolValue(s.EmailConfig.GeneratePlainContent)
 	m.EmailConfig.DesignID = types.StringValue(s.EmailConfig.DesignID)

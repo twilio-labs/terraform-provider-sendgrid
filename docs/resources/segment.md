@@ -14,8 +14,11 @@ Manages a SendGrid Marketing Campaigns contact segment: a dynamic group of conta
 
 ```terraform
 resource "sendgrid_segment" "active_customers" {
-  name      = "active-customers"
-  query_dsl = "last_opened > '2024-01-01'"
+  name = "active-customers"
+  # query_dsl must be a full SELECT statement, not just a boolean condition —
+  # confirmed against a live account. The SELECT clause must select exactly
+  # contact_id and updated_at when querying the contact_data table.
+  query_dsl = "SELECT contact_id, updated_at FROM contact_data WHERE email LIKE '%@example.com'"
 }
 ```
 
@@ -25,7 +28,7 @@ resource "sendgrid_segment" "active_customers" {
 ### Required
 
 - `name` (String) The segment's name. Must be unique across all segments in the account.
-- `query_dsl` (String) The SQL-like query used to filter contacts into this segment.
+- `query_dsl` (String) The SQL query used to filter contacts into this segment. Confirmed against a live account: this must be a full `SELECT ... FROM contact_data WHERE ...` statement, not just a boolean condition — e.g. `SELECT contact_id, updated_at FROM contact_data WHERE email LIKE '%@example.com'`. The SELECT clause must select exactly `contact_id` and `updated_at` (SendGrid rejects `SELECT *` and rejects omitting `updated_at`) when querying the `contact_data` table.
 
 ### Optional
 

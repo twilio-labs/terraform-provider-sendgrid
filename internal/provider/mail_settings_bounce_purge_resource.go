@@ -40,7 +40,10 @@ func (r *bouncePurgeMailSettingsResource) Schema(_ context.Context, _ resource.S
 			"of contacts from bounce suppression lists after a number of days. This is a singleton: SendGrid " +
 			"has exactly one bounce purge configuration per account (or per subuser, via the provider's " +
 			"`on_behalf_of`); creating this resource updates that configuration in place, and destroying it " +
-			"only removes it from Terraform state without resetting SendGrid's setting.",
+			"only removes it from Terraform state without resetting SendGrid's setting.\n\n" +
+			"~> SendGrid rejects `enabled = false` unless `soft_bounces` and `hard_bounces` are both left " +
+			"unset — confirmed against a live account (400: \"cannot be disabled unless both hard_bounces " +
+			"and soft_bounces are empty\"). Set both or neither.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
