@@ -3,8 +3,6 @@
 A Terraform provider for managing [SendGrid](https://sendgrid.com) (Twilio) resources, built on the
 [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework).
 
-**Status:** early development — not yet published to the Terraform Registry, and not yet validated against a
-live SendGrid account (see [CONTRIBUTING.md](CONTRIBUTING.md) for how to run acceptance tests).
 
 ## Resources
 
