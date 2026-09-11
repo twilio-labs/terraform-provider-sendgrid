@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	sg "github.com/twilio-internal/terraform-provider-sendgrid/internal/sendgrid"
+	sg "github.com/twilio-labs/terraform-provider-sendgrid/internal/sendgrid"
 )
 
 // Ensure the implementation satisfies the expected interfaces.

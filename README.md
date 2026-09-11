@@ -1,6 +1,6 @@
 # Terraform Provider for SendGrid
 
-[![Tests](https://github.com/twilio-internal/terraform-provider-sendgrid/actions/workflows/test.yml/badge.svg)](https://github.com/twilio-internal/terraform-provider-sendgrid/actions/workflows/test.yml)
+[![Tests](https://github.com/twilio-labs/terraform-provider-sendgrid/actions/workflows/test.yml/badge.svg)](https://github.com/twilio-labs/terraform-provider-sendgrid/actions/workflows/test.yml)
 
 A Terraform provider for managing [SendGrid](https://sendgrid.com) (Twilio) resources, built on the
 [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework).
@@ -81,7 +81,7 @@ in `~/.terraformrc`:
 ```hcl
 provider_installation {
   dev_overrides {
-    "twilio-internal/sendgrid" = "/path/to/your/GOBIN"
+    "twilio-labs/sendgrid" = "/path/to/your/GOBIN"
   }
   direct {}
 }

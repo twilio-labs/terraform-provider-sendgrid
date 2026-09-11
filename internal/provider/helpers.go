@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	sg "github.com/twilio-internal/terraform-provider-sendgrid/internal/sendgrid"
+	sg "github.com/twilio-labs/terraform-provider-sendgrid/internal/sendgrid"
 )
 
 // idFromInt64 formats a numeric SendGrid ID as a Terraform resource ID string.

@@ -1,18 +1,20 @@
 # Terraform Provider release workflow.
 #
-# DISABLED (workflow_dispatch only) while this repo is private under
-# github.com/twilio-internal — see the header comment in test.yml for the
-# full explanation (no package-registry egress on self-hosted runners) and
-# exactly what to change when this repo moves to a public org. Releases run
-# via .buildkite/pipeline.yml's tag-gated `release` step instead, for now.
+# Runs on plain GitHub-hosted `ubuntu-latest` — see the header comment in
+# test.yml for why this is correct for a public twilio-labs repo (real
+# internet access, no need for the shell-install workarounds this file used
+# while the repo was private under twilio-internal).
 #
 # GPG import and GoReleaser both run via plain shell instead of third-party
 # marketplace actions (crazy-max/ghaction-import-gpg, goreleaser-action) —
-# see the comment at the top of test.yml for why: this org's Actions
-# allow-list doesn't cover either of them.
+# see the header comment in test.yml: Twilio's Actions allowlist is
+# enterprise-wide and blocks any action not from GitHub or an
+# enterprise-owned repo, regardless of this repo being public.
 
 on:
-  workflow_dispatch: {}
+  push:
+    tags:
+      - 'v*'
 
 # Releases need permissions to read and write repository contents.
 # GitHub considers creating releases and uploading assets as writing contents.
@@ -20,11 +22,11 @@ permissions:
   contents: write
 
 env:
-  GORELEASER_VERSION: 'v2.18.0'
+  GORELEASER_VERSION: 'v2.18.1'
 
 jobs:
   goreleaser:
-    runs-on: twilio-internal-ubuntu-latest-slim
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

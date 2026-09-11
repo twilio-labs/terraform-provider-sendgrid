@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     sendgrid = {
-      source = "twilio-internal/sendgrid"
+      source = "twilio-labs/sendgrid"
     }
   }
 }
