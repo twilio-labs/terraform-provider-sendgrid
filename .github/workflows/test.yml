@@ -44,7 +44,7 @@ jobs:
   # Ensure project builds, vets, and lints cleanly before running the test matrix.
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: twilio-labs-ubuntu-latest-slim
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -63,7 +63,7 @@ jobs:
   # Unit tests never touch the network and need no credentials.
   unit-test:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: twilio-labs-ubuntu-latest-slim
     timeout-minutes: 10
     needs: build
     steps:
@@ -79,7 +79,7 @@ jobs:
   # generated docs can never silently drift from the schema.
   generate:
     name: Generate Docs
-    runs-on: ubuntu-latest
+    runs-on: twilio-labs-ubuntu-latest-slim
     timeout-minutes: 10
     env:
       TERRAFORM_VERSION: '1.15.9'
@@ -112,7 +112,7 @@ jobs:
     name: Acceptance Tests
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: twilio-labs-ubuntu-latest-slim
     timeout-minutes: 30
     strategy:
       max-parallel: 1
