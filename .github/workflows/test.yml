@@ -1,10 +1,17 @@
 # Terraform Provider testing workflow.
 #
-# Runs on plain GitHub-hosted `ubuntu-latest` runners — this is a public
-# repo under twilio-labs, so self-hosted runners aren't used (fork PRs could
-# run attacker-controlled code against internal infrastructure), and there's
-# real internet access here (unlike the old twilio-internal self-hosted
-# runners), so plain `go install`/`go mod download`/`curl` all work as-is.
+# Runs on GitHub-hosted `ubuntu-latest` runners with real internet access, so
+# plain `go install`/`go mod download`/`curl` all work as-is. This repo is
+# CURRENTLY STILL PRIVATE, and jobs will sit queued indefinitely until it
+# goes public: confirmed by testing the org's `twilio-labs-ubuntu-latest-slim`
+# self-hosted runner directly — it picked up the job but hung on
+# `actions/setup-go` until the job's timeout, i.e. it has the same
+# locked-down egress (no toolchain-download access) as twilio-internal's
+# self-hosted pool. GitHub-hosted `ubuntu-latest` is the correct target for
+# when this repo goes public (self-hosted is denied on public repos —
+# fork PRs could run attacker-controlled code against internal
+# infrastructure — and public repos get GitHub-hosted runners instead), it
+# just won't actually execute until then.
 #
 # Every `uses:` below is actions/* (GitHub-owned) — golangci-lint and
 # Terraform are installed via plain shell instead of marketplace actions
@@ -44,7 +51,7 @@ jobs:
   # Ensure project builds, vets, and lints cleanly before running the test matrix.
   build:
     name: Build
-    runs-on: twilio-labs-ubuntu-latest-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -63,7 +70,7 @@ jobs:
   # Unit tests never touch the network and need no credentials.
   unit-test:
     name: Unit Tests
-    runs-on: twilio-labs-ubuntu-latest-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: build
     steps:
@@ -79,7 +86,7 @@ jobs:
   # generated docs can never silently drift from the schema.
   generate:
     name: Generate Docs
-    runs-on: twilio-labs-ubuntu-latest-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       TERRAFORM_VERSION: '1.15.9'
@@ -112,7 +119,7 @@ jobs:
     name: Acceptance Tests
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
-    runs-on: twilio-labs-ubuntu-latest-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       max-parallel: 1
