@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	sg "github.com/twilio-internal/terraform-provider-sendgrid/internal/sendgrid"
+	sg "github.com/twilio-labs/terraform-provider-sendgrid/internal/sendgrid"
 )
 
 var (

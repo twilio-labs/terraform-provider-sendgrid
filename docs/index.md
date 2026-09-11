@@ -22,7 +22,7 @@ residency and On-Behalf-Of subuser access. If you're migrating from another Send
 terraform {
   required_providers {
     sendgrid = {
-      source = "twilio-internal/sendgrid"
+      source = "twilio-labs/sendgrid"
     }
   }
 }

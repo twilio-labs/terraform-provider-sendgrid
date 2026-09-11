@@ -30,7 +30,7 @@ different local names in one configuration:
 ```terraform
 terraform {
   required_providers {
-    sendgrid        = { source = "twilio-internal/sendgrid" }
+    sendgrid        = { source = "twilio-labs/sendgrid" }
     sendgrid_kenzo  = { source = "kenzo0107/sendgrid" }
   }
 }

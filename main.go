@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 
-	"github.com/twilio-internal/terraform-provider-sendgrid/internal/provider"
+	"github.com/twilio-labs/terraform-provider-sendgrid/internal/provider"
 )
 
 // version is set via -ldflags at build/release time (see .goreleaser.yml).
@@ -23,7 +23,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/twilio-internal/sendgrid",
+		Address: "registry.terraform.io/twilio-labs/sendgrid",
 		Debug:   debug,
 	}
 

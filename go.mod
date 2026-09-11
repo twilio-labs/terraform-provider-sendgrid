@@ -1,4 +1,4 @@
-module github.com/twilio-internal/terraform-provider-sendgrid
+module github.com/twilio-labs/terraform-provider-sendgrid
 
 go 1.26.5
 

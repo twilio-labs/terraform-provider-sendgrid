@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	sg "github.com/twilio-internal/terraform-provider-sendgrid/internal/sendgrid"
+	sg "github.com/twilio-labs/terraform-provider-sendgrid/internal/sendgrid"
 )
 
 var _ datasource.DataSource = &domainAuthenticationDataSource{}
