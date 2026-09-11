@@ -65,8 +65,7 @@ Or run everything CI runs in one shot (build, vet, lint, unit tests, docs genera
 make check
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow, including the two bug patterns that have bitten
-this provider before and are worth checking for in any new resource.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow
 
 ### Configuration for local development
 
