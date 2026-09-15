@@ -43,11 +43,6 @@ See [docs/](docs/) for full reference documentation, and
 [docs/guides/authentication.md](docs/guides/authentication.md) for provider configuration (including EU data
 residency and On-Behalf-Of subuser access).
 
-Still not implemented: the legacy Mail Settings suite (footer, plain content, forward bounce/spam, spam check),
-granular IP address/warmup management beyond pools, SCIM-based teammate provisioning, and the Partner/Account
-provisioning API — these are lower-value or more niche than what's here. See open issues for the current
-backlog.
-
 ## Development
 
 Requirements:
