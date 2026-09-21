@@ -35,3 +35,18 @@ go build ./... && go vet ./... && golangci-lint run && go test ./... && go gener
 ```
 
 If `go generate ./...` changes anything under `docs/`, commit that too — CI fails the build if generated docs don't match what's committed.
+
+## Submitting and reviewing changes
+
+1. Open a pull request against `main`.
+2. CI (build, vet, lint, unit tests, docs-drift check) must pass.
+3. At least one maintainer review is required before merge.
+4. Acceptance tests only run automatically on push to `main`, not on pull requests — forked and
+   external PRs don't receive the `SENDGRID_API_KEY` secret, so untrusted branches can't spend a
+   live account's quota. As part of review, a maintainer runs the acceptance suite locally (or
+   merges to trigger the push-triggered run) for any change that touches provider behavior.
+
+## Reporting issues
+
+Open a GitHub issue with as much detail as you can: the resource/data source involved, your
+Terraform configuration (redacted of secrets), and the actual vs. expected behavior.
