@@ -1,4 +1,4 @@
-# Terraform Provider for SendGrid
+# SendGrid Terraform Provider
 
 A Terraform provider for managing [SendGrid](https://sendgrid.com) (Twilio) resources, built on the
 [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework).

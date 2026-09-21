@@ -1,4 +1,4 @@
-// Terraform Provider for SendGrid
+// SendGrid Terraform Provider
 //
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name sendgrid
 package main
