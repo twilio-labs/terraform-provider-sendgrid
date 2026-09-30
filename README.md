@@ -4,6 +4,31 @@ A Terraform provider for managing [SendGrid](https://sendgrid.com) (Twilio) reso
 [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework).
 
 
+## Usage
+
+The provider is published on the [Terraform Registry](https://registry.terraform.io/providers/twilio-labs/sendgrid/latest)
+as `twilio-labs/sendgrid`:
+
+```hcl
+terraform {
+  required_providers {
+    sendgrid = {
+      source = "twilio-labs/sendgrid"
+    }
+  }
+}
+
+provider "sendgrid" {
+  # Or set the SENDGRID_API_KEY environment variable.
+  api_key = var.sendgrid_api_key
+}
+```
+
+See [docs/guides/authentication.md](docs/guides/authentication.md) for all provider configuration options
+(including EU data residency and On-Behalf-Of subuser access), and
+[docs/guides/migrating-from-other-providers.md](docs/guides/migrating-from-other-providers.md) if you're
+coming from another SendGrid provider.
+
 ## Resources
 
 **Access & Security**
@@ -11,6 +36,7 @@ A Terraform provider for managing [SendGrid](https://sendgrid.com) (Twilio) reso
 
 **Account Management**
 - [`sendgrid_subuser`](docs/resources/subuser.md)
+- [`sendgrid_teammate`](docs/resources/teammate.md)
 
 **Sender Authentication**
 - [`sendgrid_domain_authentication`](docs/resources/domain_authentication.md)
@@ -33,22 +59,33 @@ A Terraform provider for managing [SendGrid](https://sendgrid.com) (Twilio) reso
 - [`sendgrid_open_tracking_settings`](docs/resources/open_tracking_settings.md)
 - [`sendgrid_subscription_tracking_settings`](docs/resources/subscription_tracking_settings.md)
 - [`sendgrid_google_analytics_settings`](docs/resources/google_analytics_settings.md)
+- [`sendgrid_address_whitelist_mail_settings`](docs/resources/address_whitelist_mail_settings.md)
+- [`sendgrid_bounce_purge_mail_settings`](docs/resources/bounce_purge_mail_settings.md)
+- [`sendgrid_footer_mail_settings`](docs/resources/footer_mail_settings.md)
+- [`sendgrid_forward_bounce_mail_settings`](docs/resources/forward_bounce_mail_settings.md)
+- [`sendgrid_forward_spam_mail_settings`](docs/resources/forward_spam_mail_settings.md)
+- [`sendgrid_template_mail_settings`](docs/resources/template_mail_settings.md)
 
 **IP Management**
+- [`sendgrid_ip_address`](docs/resources/ip_address.md)
 - [`sendgrid_ip_pool`](docs/resources/ip_pool.md)
+- [`sendgrid_ip_warmup`](docs/resources/ip_warmup.md)
 
-Each resource has a matching data source of the same name, except `sendgrid_template_version` and the four
-singleton Tracking & Mail Settings resources (there's nothing to look up by ID for an account-wide setting).
-See [docs/](docs/) for full reference documentation, and
-[docs/guides/authentication.md](docs/guides/authentication.md) for provider configuration (including EU data
-residency and On-Behalf-Of subuser access).
+**Partner Accounts**
+- [`sendgrid_partner_account`](docs/resources/partner_account.md)
+
+Most resources have a matching data source of the same name. The exceptions are `sendgrid_template_version`,
+`sendgrid_ip_warmup`, `sendgrid_partner_account`, and the account-wide Tracking & Mail Settings resources
+(there's nothing to look up by ID for a singleton setting). There is also a standalone
+[`sendgrid_partner_offerings`](docs/data-sources/partner_offerings.md) data source. See [docs/](docs/) for
+full reference documentation.
 
 ## Development
 
 Requirements:
 
-- [Go](https://golang.org/doc/install) >= 1.24
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.11
+- [Go](https://golang.org/doc/install) >= 1.26 (see `go.mod`)
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.9
 
 ```sh
 go install

@@ -1,9 +1,12 @@
 # Terraform Provider release workflow.
 #
-# Runs on plain GitHub-hosted `ubuntu-latest` — see the header comment in
-# test.yml for why this is correct for a public twilio-labs repo (real
-# internet access, no need for the shell-install workarounds this file used
-# while the repo was private under twilio-internal).
+# Runs on GitHub-hosted `ubuntu-latest` — see the header comment in test.yml.
+#
+# Publishing to the Terraform Registry is not a step here: once the provider
+# is registered, the Registry picks up each new GitHub release via webhook.
+# It requires the release to contain the zipped binaries, the
+# `_manifest.json`, and a `_SHA256SUMS` file signed by a GPG key uploaded
+# to the Registry namespace (the key in the GPG_PRIVATE_KEY secret).
 #
 # GPG import and GoReleaser both run via plain shell instead of third-party
 # marketplace actions (crazy-max/ghaction-import-gpg, goreleaser-action) —
@@ -57,4 +60,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ env.GPG_FINGERPRINT }}
+          # Passed to gpg on stdin by .goreleaser.yml's `signs` block.
+          PASSPHRASE: ${{ secrets.PASSPHRASE }}
         run: goreleaser release --clean
