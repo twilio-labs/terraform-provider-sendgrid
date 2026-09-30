@@ -29,7 +29,7 @@ builds:
         goarch: '386'
     binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
-  - format: zip
+  - formats: [zip]
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 checksum:
   extra_files:
@@ -39,10 +39,18 @@ checksum:
   algorithm: sha256
 signs:
   - artifacts: checksum
+    # Feed the key's passphrase to gpg on stdin rather than relying on
+    # gpg-agent having it cached: CI has no pinentry to prompt with, so an
+    # expired or restarted agent would otherwise fail with "No pinentry".
+    stdin: '{{ .Env.PASSPHRASE }}'
     args:
       # goreleaser runs in a non-interactive CI pipeline; --batch tells GPG not to
       # prompt.
       - "--batch"
+      - "--pinentry-mode"
+      - "loopback"
+      - "--passphrase-fd"
+      - "0"
       - "--local-user"
       - "{{ .Env.GPG_FINGERPRINT }}"
       - "--output"

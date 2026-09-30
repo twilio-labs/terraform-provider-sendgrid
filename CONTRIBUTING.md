@@ -2,7 +2,7 @@
 
 ## Development requirements
 
-- [Go](https://golang.org/doc/install) >= 1.24
+- [Go](https://golang.org/doc/install) >= 1.26 (see `go.mod`)
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.9
 - [golangci-lint](https://golangci-lint.run/welcome/install/) (matches `.golangci.yml`)
 

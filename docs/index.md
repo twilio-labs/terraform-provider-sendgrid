@@ -7,8 +7,9 @@ description: |-
 # SendGrid Provider
 
 The SendGrid provider is used to manage [SendGrid](https://sendgrid.com) (a Twilio product) resources: API keys,
-sender authentication, subusers, transactional templates, and event webhooks. The provider needs to be
-configured with an API key before it can be used.
+subusers and teammates, sender authentication, transactional templates, event webhooks, Marketing Campaigns
+lists/segments/custom fields/Single Sends, tracking and mail settings, IP addresses/pools/warmup, and partner
+accounts. The provider needs to be configured with an API key before it can be used.
 
 ## Getting Started
 
