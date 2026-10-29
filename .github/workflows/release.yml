@@ -1,6 +1,6 @@
 # Terraform Provider release workflow.
 #
-# Runs on GitHub-hosted `ubuntu-latest` — see the header comment in test.yml.
+# Runs on `ubuntu-latest-large` — see the header comment in test.yml.
 #
 # Publishing to the Terraform Registry is not a step here: once the provider
 # is registered, the Registry picks up each new GitHub release via webhook.
@@ -29,7 +29,7 @@ env:
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
